@@ -656,6 +656,28 @@ final class column {
     }
 
     /**
+     * Return column value based on complete table row.
+     * Return values without any HTML tags for dataformat that do not support HTML.
+     * @param array $row
+     * @return mixed
+     */
+    public function format_value_download(array $row) {
+        $values = $this->get_values($row);
+        $value = $this->get_default_value($values);
+
+        // If column is being aggregated thanksthen defer formatting to them, otherwise loop through all column callbacks.
+        if (!empty($this->aggregation)) {
+            $value = $this->aggregation::format_value($value, $values, $this->callbacks);
+        } else {
+            foreach ($this->callbacks as $callback) {
+                [$callable, $arguments] = $callback;
+                $value = ($callable)($value, (object) $values, $arguments);
+            }
+        }
+        return strip_tags($value);
+    }
+
+    /**
      * Add column attributes (data-, class, etc.) that will be included in HTML when column is displayed
      *
      * @param array $attributes
