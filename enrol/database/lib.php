@@ -709,8 +709,10 @@ class enrol_database_plugin extends enrol_plugin {
                         $trace->output('error: invalid external course record, shortname and fullname are mandatory: ' . json_encode($fields), 1); // Hopefully every geek can read JS, right?
                         continue;
                     }
-                    if ($DB->record_exists('course', array('shortname'=>$fields[$shortname_l]))) {
+                    if ($record = $DB->record_exists('course', array('shortname'=>$fields[$shortname_l]))) {
                         // Already exists, skip.
+                        // WR#371794: Add hiding/unhiding of existing courses
+                        \local_xmlsync\util::enrol_database_course_update_hook($record);
                         continue;
                     }
                     // Allow empty idnumber but not duplicates.
@@ -738,6 +740,8 @@ class enrol_database_plugin extends enrol_plugin {
                     } else {
                         $course->category = $defaultcategory;
                     }
+                    // WR#371794: Add hiding/unhiding.
+                    \local_xmlsync\util::enrol_database_course_hook($course);
                     $createcourses[] = $course;
                 }
             }
@@ -805,6 +809,12 @@ class enrol_database_plugin extends enrol_plugin {
                     continue;
                 } else if (!empty($newcourse->idnumber) and $DB->record_exists('course', array('idnumber' => $newcourse->idnumber))) {
                     $trace->output("can not insert new course, duplicate idnumber detected: ".$newcourse->idnumber, 1);
+                    continue;
+                }
+                // WR#371793: Clone content from template course, if there is an individual template.
+                if (\local_xmlsync\util::enrol_database_template_check($newcourse->idnumber)) {
+                    \local_xmlsync\util::enrol_database_template_hook($newcourse);
+                    $trace->output("creating new course, cloning from template: $c->fullname, $c->shortname, $c->idnumber, $c->category", 1);
                     continue;
                 }
                 $c = create_course($newcourse);
