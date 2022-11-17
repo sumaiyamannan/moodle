@@ -60,6 +60,11 @@ class display_options extends \question_display_options {
     public $overallfeedback = self::VISIBLE;
 
     /**
+     * @var int whether the attempt overall feedback is visible.
+     */
+    public $responsehistory = self::VISIBLE;
+
+    /**
      * Set up the various options from the quiz settings, and a time constant.
      *
      * @param \stdClass $quiz the quiz settings from the database.

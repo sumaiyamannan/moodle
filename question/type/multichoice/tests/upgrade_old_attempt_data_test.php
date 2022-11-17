@@ -72,6 +72,7 @@ class upgrade_old_attempt_data_test extends \question_attempt_upgrader_test_base
             'reviewgeneralfeedback' => '69904',
             'reviewrightanswer' => '69904',
             'reviewoverallfeedback' => '4368',
+            'reviewresponsehistory' => '4352',
         );
         $attempt = (object) array(
             'id' => '2',

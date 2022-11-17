@@ -67,6 +67,7 @@ class upgrade_old_attempt_data_test extends \question_attempt_upgrader_test_base
             'reviewgeneralfeedback' => '69888',
             'reviewrightanswer' => '69888',
             'reviewoverallfeedback' => '4352',
+            'reviewresponsehistory' => '4352',
         );
         $attempt = (object) array(
             'id' => '13',
@@ -252,6 +253,7 @@ class upgrade_old_attempt_data_test extends \question_attempt_upgrader_test_base
             'reviewgeneralfeedback' => '69888',
             'reviewrightanswer' => '69888',
             'reviewoverallfeedback' => '4352',
+            'reviewresponsehistory' => '4352',
         );
         $attempt = (object) array(
             'id' => '14',
@@ -477,6 +479,7 @@ class upgrade_old_attempt_data_test extends \question_attempt_upgrader_test_base
             'reviewgeneralfeedback' => '69888',
             'reviewrightanswer' => '69888',
             'reviewoverallfeedback' => '4352',
+            'reviewresponsehistory' => '4352',
         );
         $attempt = (object) array(
             'id' => '15',

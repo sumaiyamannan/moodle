@@ -1119,6 +1119,7 @@ function quiz_process_options($quiz) {
     $quiz->reviewgeneralfeedback = quiz_review_option_form_to_db($quiz, 'generalfeedback');
     $quiz->reviewrightanswer = quiz_review_option_form_to_db($quiz, 'rightanswer');
     $quiz->reviewoverallfeedback = quiz_review_option_form_to_db($quiz, 'overallfeedback');
+    $quiz->reviewresponsehistory = quiz_review_option_form_to_db($quiz, 'responsehistory');
     $quiz->reviewattempt |= display_options::DURING;
     $quiz->reviewoverallfeedback &= ~display_options::DURING;
 

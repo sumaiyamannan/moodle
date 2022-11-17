@@ -228,6 +228,15 @@ class restore_quiz_activity_structure_step extends restore_questions_activity_st
                             display_options::LATER_WHILE_OPEN : 0) |
                     ($oldreview & QUIZ_OLD_CLOSED & QUIZ_OLD_OVERALLFEEDBACK ?
                             display_options::AFTER_CLOSE : 0);
+
+            $data->reviewresponsehistory =
+                    0 |
+                    ($oldreview & QUIZ_OLD_IMMEDIATELY & QUIZ_OLD_OVERALLFEEDBACK ?
+                            display_options::IMMEDIATELY_AFTER : 0) |
+                    ($oldreview & QUIZ_OLD_OPEN & QUIZ_OLD_OVERALLFEEDBACK ?
+                            display_options::LATER_WHILE_OPEN : 0) |
+                    ($oldreview & QUIZ_OLD_CLOSED & QUIZ_OLD_OVERALLFEEDBACK ?
+                            display_options::AFTER_CLOSE : 0);
         }
 
         // The old popup column from from <= 2.1 need to be mapped to

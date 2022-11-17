@@ -176,5 +176,20 @@ function xmldb_quiz_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2022120500, 'quiz');
     }
 
+    if ($oldversion < 2023021300) {
+
+        // Define field reviewresponsehistory to be added to quiz.
+        $table = new xmldb_table('quiz');
+        $field = new xmldb_field('reviewresponsehistory', XMLDB_TYPE_INTEGER, '6', null, null, null, '0', 'reviewoverallfeedback');
+
+        // Conditionally launch add field reviewresponsehistory.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Quiz savepoint reached.
+        upgrade_mod_savepoint(true, 2023021300, 'quiz');
+    }
+
     return true;
 }

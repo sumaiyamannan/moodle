@@ -133,9 +133,9 @@ class mod_quiz_external extends external_api {
 
                         $additionalfields = ['attemptonlast', 'reviewattempt', 'reviewcorrectness', 'reviewmarks',
                                                     'reviewspecificfeedback', 'reviewgeneralfeedback', 'reviewrightanswer',
-                                                    'reviewoverallfeedback', 'questionsperpage', 'navmethod',
-                                                    'browsersecurity', 'delay1', 'delay2', 'showuserpicture', 'showblocks',
-                                                    'completionattemptsexhausted', 'overduehandling',
+                                                    'reviewoverallfeedback', 'reviewresponsehistory', 'questionsperpage',
+                                                    'navmethod', 'browsersecurity', 'delay1', 'delay2', 'showuserpicture',
+                                                    'showblocks', 'completionattemptsexhausted', 'overduehandling',
                                                     'graceperiod', 'canredoquestions', 'allowofflineattempts'];
                         $viewablefields = array_merge($viewablefields, $additionalfields);
 
@@ -223,6 +223,9 @@ class mod_quiz_external extends external_api {
                                                                         attempts at various times. A bit field, like
                                                                         reviewattempt.', VALUE_OPTIONAL),
                             'reviewoverallfeedback' => new external_value(PARAM_INT, 'Whether users are allowed to review their quiz
+                                                                            attempts at various times. A bit field, like
+                                                                            reviewattempt.', VALUE_OPTIONAL),
+                            'reviewresponsehistory' => new external_value(PARAM_INT, 'Whether users are allowed to review their quiz
                                                                             attempts at various times. A bit field, like
                                                                             reviewattempt.', VALUE_OPTIONAL),
                             'questionsperpage' => new external_value(PARAM_INT, 'How often to insert a page break when editing

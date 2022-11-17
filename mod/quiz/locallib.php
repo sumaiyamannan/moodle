@@ -1523,6 +1523,7 @@ function quiz_attempt_state($quiz, $attempt) {
  * @return display_options
  */
 function quiz_get_review_options($quiz, $attempt, $context) {
+    global $USER;
     $options = display_options::make_from_quiz($quiz, quiz_attempt_state($quiz, $attempt));
 
     $options->readonly = true;
@@ -1555,8 +1556,15 @@ function quiz_get_review_options($quiz, $attempt, $context) {
         $options->rightanswer = question_display_options::VISIBLE;
         $options->overallfeedback = question_display_options::VISIBLE;
         $options->history = question_display_options::VISIBLE;
+        $options->responsehistory = question_display_options::VISIBLE;
         $options->userinfoinhistory = $attempt->userid;
 
+    }
+
+    // Check that this attempt belongs to this user.
+    // Check that response history is enabled for this review option.
+    if ($attempt->userid == $USER->id && $options->responsehistory == 1) {
+        $options->history = 1;
     }
 
     return $options;
@@ -1576,7 +1584,7 @@ function quiz_get_review_options($quiz, $attempt, $context) {
  *          for all attempts.
  */
 function quiz_get_combined_reviewoptions($quiz, $attempts) {
-    $fields = ['feedback', 'generalfeedback', 'rightanswer', 'overallfeedback'];
+    $fields = ['feedback', 'generalfeedback', 'rightanswer', 'overallfeedback', 'responsehistory'];
     $someoptions = new stdClass();
     $alloptions = new stdClass();
     foreach ($fields as $field) {

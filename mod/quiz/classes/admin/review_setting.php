@@ -68,6 +68,7 @@ class review_setting extends \admin_setting {
             'generalfeedback'  => get_string('generalfeedback', 'question'),
             'rightanswer'      => get_string('rightanswer', 'question'),
             'overallfeedback'  => get_string('overallfeedback', 'quiz'),
+            'responsehistory'  => get_string('responsehistory', 'quiz'),
         ];
     }
 
