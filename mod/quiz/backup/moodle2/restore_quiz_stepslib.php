@@ -225,6 +225,15 @@ class restore_quiz_activity_structure_step extends restore_questions_activity_st
                     ($oldreview & QUIZ_OLD_OPEN & QUIZ_OLD_OVERALLFEEDBACK ?
                             mod_quiz_display_options::LATER_WHILE_OPEN : 0) |
                     ($oldreview & QUIZ_OLD_CLOSED & QUIZ_OLD_OVERALLFEEDBACK ?
+                    mod_quiz_display_options::AFTER_CLOSE : 0);
+
+                    $data->reviewresponsehistory =
+                    0 |
+                    ($oldreview & QUIZ_OLD_IMMEDIATELY & QUIZ_OLD_OVERALLFEEDBACK ?
+                            mod_quiz_display_options::IMMEDIATELY_AFTER : 0) |
+                    ($oldreview & QUIZ_OLD_OPEN & QUIZ_OLD_OVERALLFEEDBACK ?
+                            mod_quiz_display_options::LATER_WHILE_OPEN : 0) |
+                    ($oldreview & QUIZ_OLD_CLOSED & QUIZ_OLD_OVERALLFEEDBACK ?
                             mod_quiz_display_options::AFTER_CLOSE : 0);
         }
 

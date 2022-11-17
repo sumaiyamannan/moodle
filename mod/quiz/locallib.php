@@ -1558,6 +1558,7 @@ function quiz_get_review_options($quiz, $attempt, $context) {
         $options->rightanswer = question_display_options::VISIBLE;
         $options->overallfeedback = question_display_options::VISIBLE;
         $options->history = question_display_options::VISIBLE;
+        $options->responsehistory = question_display_options::VISIBLE;
         $options->userinfoinhistory = $attempt->userid;
 
     }
@@ -1579,7 +1580,7 @@ function quiz_get_review_options($quiz, $attempt, $context) {
  *          for all attempts.
  */
 function quiz_get_combined_reviewoptions($quiz, $attempts) {
-    $fields = array('feedback', 'generalfeedback', 'rightanswer', 'overallfeedback');
+    $fields = array('feedback', 'generalfeedback', 'rightanswer', 'overallfeedback', 'responsehistory');
     $someoptions = new stdClass();
     $alloptions = new stdClass();
     foreach ($fields as $field) {
@@ -2114,6 +2115,7 @@ class mod_quiz_display_options extends question_display_options {
         $options->generalfeedback = self::extract($quiz->reviewgeneralfeedback, $when);
         $options->rightanswer = self::extract($quiz->reviewrightanswer, $when);
         $options->overallfeedback = self::extract($quiz->reviewoverallfeedback, $when);
+        $options->responsehistory = self::extract($quiz->reviewresponsehistory, $when);
 
         $options->numpartscorrect = $options->feedback;
         $options->manualcomment = $options->feedback;

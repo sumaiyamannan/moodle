@@ -54,6 +54,7 @@ class mod_quiz_mod_form extends moodleform_mod {
             'generalfeedback'  => array('generalfeedback', 'question'),
             'rightanswer'      => array('rightanswer', 'question'),
             'overallfeedback'  => array('reviewoverallfeedback', 'quiz'),
+            'responsehistory'  => array('responsehistory', 'quiz'),
         );
         parent::__construct($current, $section, $cm, $course);
     }

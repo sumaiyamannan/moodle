@@ -43,6 +43,7 @@ class quizdisplayoptions_test extends \basic_testcase {
         $quiz->reviewgeneralfeedback  = 0x01000;
         $quiz->reviewrightanswer      = 0x00100;
         $quiz->reviewoverallfeedback  = 0x00010;
+        $quiz->reviewresponsehistory  = 0x00010;
 
         $options = mod_quiz_display_options::make_from_quiz($quiz,
             mod_quiz_display_options::DURING);

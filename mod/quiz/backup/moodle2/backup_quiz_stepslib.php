@@ -35,7 +35,7 @@ class backup_quiz_activity_structure_step extends backup_questions_activity_stru
             'overduehandling', 'graceperiod', 'preferredbehaviour', 'canredoquestions', 'attempts_number',
             'attemptonlast', 'grademethod', 'decimalpoints', 'questiondecimalpoints',
             'reviewattempt', 'reviewcorrectness', 'reviewmarks',
-            'reviewspecificfeedback', 'reviewgeneralfeedback',
+            'reviewspecificfeedback', 'reviewgeneralfeedback', 'reviewresponsehistory',
             'reviewrightanswer', 'reviewoverallfeedback',
             'questionsperpage', 'navmethod', 'shuffleanswers',
             'sumgrades', 'grade', 'timecreated',

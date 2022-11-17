@@ -162,6 +162,20 @@ function xmldb_quiz_upgrade($oldversion) {
 
     // Automatically generated Moodle v4.1.0 release upgrade line.
     // Put any upgrade step following this.
+    if ($oldversion < 2022121500) {
+
+        // Define field reviewresponsehistory to be added to quiz.
+        $table = new xmldb_table('quiz');
+        $field = new xmldb_field('reviewresponsehistory', XMLDB_TYPE_INTEGER, '6', null, null, null, '0', 'reviewoverallfeedback');
+
+        // Conditionally launch add field reviewresponsehistory.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Quiz savepoint reached.
+        upgrade_mod_savepoint(true, 2022121500, 'quiz');
+    }
 
     return true;
 }

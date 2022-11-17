@@ -220,7 +220,7 @@ class external_test extends externallib_advanced_testcase {
                                 'grade', 'preferredbehaviour', 'hasfeedback');
         $userswithaccessfields = array('attemptonlast', 'reviewattempt', 'reviewcorrectness', 'reviewmarks',
                                         'reviewspecificfeedback', 'reviewgeneralfeedback', 'reviewrightanswer',
-                                        'reviewoverallfeedback', 'questionsperpage', 'navmethod',
+                                        'reviewoverallfeedback', 'reviewresponsehistory', 'questionsperpage', 'navmethod',
                                         'browsersecurity', 'delay1', 'delay2', 'showuserpicture', 'showblocks',
                                         'completionattemptsexhausted', 'completionpass', 'autosaveperiod', 'hasquestions',
                                         'overduehandling', 'graceperiod', 'canredoquestions', 'allowofflineattempts');
@@ -728,6 +728,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 0),
+                array("name" => "responsehistory", "value" => 0),
                 array("name" => "marks", "value" => 2),
             ),
             "alloptions" => array(
@@ -735,6 +736,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 0),
+                array("name" => "responsehistory", "value" => 0),
                 array("name" => "marks", "value" => 2),
             ),
             "warnings" => [],
@@ -752,6 +754,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 1),
+                array("name" => "responsehistory", "value" => 1),
                 array("name" => "marks", "value" => 2),
             ),
             "alloptions" => array(
@@ -759,6 +762,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 1),
+                array("name" => "responsehistory", "value" => 1),
                 array("name" => "marks", "value" => 2),
             ),
             "warnings" => [],
@@ -783,6 +787,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 1),
+                array("name" => "responsehistory", "value" => 1),
                 array("name" => "marks", "value" => 2),
             ),
             "alloptions" => array(
@@ -790,6 +795,7 @@ class external_test extends externallib_advanced_testcase {
                 array("name" => "generalfeedback", "value" => 1),
                 array("name" => "rightanswer", "value" => 1),
                 array("name" => "overallfeedback", "value" => 0),
+                array("name" => "responsehistory", "value" => 0),
                 array("name" => "marks", "value" => 2),
             ),
             "warnings" => [],
