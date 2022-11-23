@@ -24,15 +24,15 @@
 "use strict";
 
 import $ from 'jquery';
-import {dispatchEvent} from 'core/event_dispatcher';
+import CustomEvents from 'core/custom_interaction_events';
 import 'core/inplace_editable';
 import Notification from 'core/notification';
 import Pending from 'core/pending';
+import {prefetchStrings} from 'core/prefetch';
 import SortableList from 'core/sortable_list';
-import {get_string as getString, get_strings as getStrings} from 'core/str';
+import {get_string as getString} from 'core/str';
 import Templates from 'core/templates';
 import {add as addToast} from 'core/toast';
-import * as reportEvents from 'core_reportbuilder/local/events';
 import * as reportSelectors from 'core_reportbuilder/local/selectors';
 import {addFilter, deleteFilter, reorderFilter} from 'core_reportbuilder/local/repository/filters';
 
@@ -50,37 +50,59 @@ const reloadSettingsFiltersRegion = (reportElement, templateContext) => {
     return Templates.renderForPromise('core_reportbuilder/local/settings/filters', {filters: templateContext})
         .then(({html, js}) => {
             Templates.replaceNode(settingsFiltersRegion, html, js);
+
+            initFiltersForm();
+
             // Re-focus the add filter element after reloading the region.
             const reportAddFilter = reportElement.querySelector(reportSelectors.actions.reportAddFilter);
             reportAddFilter?.focus();
+
             return pendingPromise.resolve();
         });
 };
 
 /**
- * Initialise module
+ * Initialise filters form, must be called on each init because the form container is re-created when switching editor modes
+ */
+const initFiltersForm = () => {
+    CustomEvents.define(reportSelectors.actions.reportAddFilter, [CustomEvents.events.accessibleChange]);
+};
+
+/**
+ * Initialise module, prefetch all required strings
  *
  * @param {Boolean} initialized Ensure we only add our listeners once
  */
-export const init = (initialized) => {
+export const init = initialized => {
+    prefetchStrings('core_reportbuilder', [
+        'deletefilter',
+        'deletefilterconfirm',
+        'filteradded',
+        'filterdeleted',
+        'filtermoved',
+    ]);
+
+    prefetchStrings('core', [
+        'delete',
+    ]);
+
+    initFiltersForm();
     if (initialized) {
         return;
     }
 
-    document.addEventListener('click', event => {
-
-        // Add filter to report.
+    // Add filter to report. Use custom events helper to ensure consistency across platforms.
+    $(document).on(CustomEvents.events.accessibleChange, reportSelectors.actions.reportAddFilter, event => {
         const reportAddFilter = event.target.closest(reportSelectors.actions.reportAddFilter);
         if (reportAddFilter) {
             event.preventDefault();
 
-            const reportElement = reportAddFilter.closest(reportSelectors.regions.report);
-
             // Check if dropdown is closed with no filter selected.
-            if (reportAddFilter.value === '0') {
+            if (reportAddFilter.selectedIndex === 0) {
                 return;
             }
 
+            const reportElement = reportAddFilter.closest(reportSelectors.regions.report);
             const pendingPromise = new Pending('core_reportbuilder/filters:add');
 
             addFilter(reportElement.dataset.reportId, reportAddFilter.value)
@@ -91,6 +113,9 @@ export const init = (initialized) => {
                 .then(() => pendingPromise.resolve())
                 .catch(Notification.exception);
         }
+    });
+
+    document.addEventListener('click', event => {
 
         // Remove filter from report.
         const reportRemoveFilter = event.target.closest(reportSelectors.actions.reportRemoveFilter);
@@ -101,26 +126,22 @@ export const init = (initialized) => {
             const filterContainer = reportRemoveFilter.closest(reportSelectors.regions.activeFilter);
             const filterName = filterContainer.dataset.filterName;
 
-            getStrings([
-                {key: 'deletefilter', component: 'core_reportbuilder', param: filterName},
-                {key: 'deletefilterconfirm', component: 'core_reportbuilder', param: filterName},
-                {key: 'delete', component: 'moodle'},
-            ]).then(([confirmTitle, confirmText, confirmButton]) => {
-                Notification.confirm(confirmTitle, confirmText, confirmButton, null, () => {
-                    const pendingPromise = new Pending('core_reportbuilder/filters:remove');
+            Notification.saveCancelPromise(
+                getString('deletefilter', 'core_reportbuilder', filterName),
+                getString('deletefilterconfirm', 'core_reportbuilder', filterName),
+                getString('delete', 'core'),
+                {triggerElement: reportRemoveFilter}
+            ).then(() => {
+                const pendingPromise = new Pending('core_reportbuilder/filters:remove');
 
-                    deleteFilter(reportElement.dataset.reportId, filterContainer.dataset.filterId)
-                        .then(data => reloadSettingsFiltersRegion(reportElement, data))
-                        .then(() => getString('filterdeleted', 'core_reportbuilder', filterName))
-                        .then(addToast)
-                        .then(() => {
-                            dispatchEvent(reportEvents.tableReload, {}, reportElement);
-                            return pendingPromise.resolve();
-                        })
-                        .catch(Notification.exception);
-                });
+                return deleteFilter(reportElement.dataset.reportId, filterContainer.dataset.filterId)
+                    .then(data => reloadSettingsFiltersRegion(reportElement, data))
+                    .then(() => addToast(getString('filterdeleted', 'core_reportbuilder', filterName)))
+                    .then(() => pendingPromise.resolve())
+                    .catch(Notification.exception);
+            }).catch(() => {
                 return;
-            }).catch(Notification.exception);
+            });
         }
     });
 

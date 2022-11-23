@@ -133,15 +133,15 @@ Feature: Allow to mark course as completed without cron for activity completion 
   Scenario: Course completion should not be updated when teacher grades assignment on activity grader report page
     Given I log in as "teacher1"
     And I am on "Completion course" course homepage
-    And I navigate to "View > Grader report" in the course gradebook
-    And I follow "Single view"
-    And I select "Student First" from the "Select user..." singleselect
+    And I navigate to "View > Single view" in the course gradebook
+    And I click on "Users" "link" in the ".page-toggler" "css_element"
+    And I turn editing mode on
+    And I click on "Student First" in the "user" search widget
     And I set the field "Override for Test assignment name" to "1"
     When I set the following fields to these values:
       | Grade for Test assignment name | 10.00 |
       | Feedback for Test assignment name | test data |
     And I press "Save"
-    And I press "Continue"
     And I log out
     And I log in as "student1"
     And I am on "Completion course" course homepage
@@ -156,7 +156,7 @@ Feature: Allow to mark course as completed without cron for activity completion 
   Scenario: Course completion should not be updated when teacher imports grades with csv file
     Given I log in as "teacher1"
     And I am on "Completion course" course homepage
-    And I navigate to "Import" in the course gradebook
+    And I navigate to "CSV file" import page in the course gradebook
     And I upload "lib/tests/fixtures/upload_grades.csv" file to "File" filemanager
     And I press "Upload grades"
     And I set the field "Map to" to "Email address"

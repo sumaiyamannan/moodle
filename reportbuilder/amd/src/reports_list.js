@@ -26,7 +26,8 @@
 import {dispatchEvent} from 'core/event_dispatcher';
 import Notification from 'core/notification';
 import Pending from 'core/pending';
-import {get_string as getString, get_strings as getStrings} from 'core/str';
+import {prefetchStrings} from 'core/prefetch';
+import {get_string as getString} from 'core/str';
 import {add as addToast} from 'core/toast';
 import * as reportEvents from 'core_reportbuilder/local/events';
 import * as reportSelectors from 'core_reportbuilder/local/selectors';
@@ -37,6 +38,19 @@ import {createReportModal} from 'core_reportbuilder/local/repository/modals';
  * Initialise module
  */
 export const init = () => {
+    prefetchStrings('core_reportbuilder', [
+        'deletereport',
+        'deletereportconfirm',
+        'editreportdetails',
+        'newreport',
+        'reportdeleted',
+        'reportupdated',
+    ]);
+
+    prefetchStrings('core', [
+        'delete',
+    ]);
+
     document.addEventListener('click', event => {
         const reportCreate = event.target.closest(reportSelectors.actions.reportCreate);
         if (reportCreate) {
@@ -56,7 +70,9 @@ export const init = () => {
             event.preventDefault();
 
             // Reload current report page after submission.
-            const reportModal = createReportModal(event.target, getString('editreportdetails', 'core_reportbuilder'),
+            // Use triggerElement to return focus to the action menu toggle.
+            const triggerElement = reportEdit.closest('.dropdown').querySelector('.dropdown-toggle');
+            const reportModal = createReportModal(triggerElement, getString('editreportdetails', 'core_reportbuilder'),
                 reportEdit.dataset.reportId);
             reportModal.addEventListener(reportModal.events.FORM_SUBMITTED, () => {
                 const reportElement = event.target.closest(reportSelectors.regions.report);
@@ -77,27 +93,27 @@ export const init = () => {
         if (reportDelete) {
             event.preventDefault();
 
-            getStrings([
-                {key: 'deletereport', component: 'core_reportbuilder'},
-                {key: 'deletereportconfirm', component: 'core_reportbuilder', param: reportDelete.dataset.reportName},
-                {key: 'delete', component: 'moodle'},
-            ]).then(([confirmTitle, confirmText, confirmButton]) => {
-                Notification.confirm(confirmTitle, confirmText, confirmButton, null, () => {
-                    const pendingPromise = new Pending('core_reportbuilder/reports:delete');
-                    const reportElement = event.target.closest(reportSelectors.regions.report);
+            // Use triggerElement to return focus to the action menu toggle.
+            const triggerElement = reportDelete.closest('.dropdown').querySelector('.dropdown-toggle');
+            Notification.saveCancelPromise(
+                getString('deletereport', 'core_reportbuilder'),
+                getString('deletereportconfirm', 'core_reportbuilder', reportDelete.dataset.reportName),
+                getString('delete', 'core'),
+                {triggerElement}
+            ).then(() => {
+                const pendingPromise = new Pending('core_reportbuilder/reports:delete');
+                const reportElement = event.target.closest(reportSelectors.regions.report);
 
-                    deleteReport(reportDelete.dataset.reportId)
-                        .then(() => getString('reportdeleted', 'core_reportbuilder'))
-                        .then(addToast)
-                        .then(() => {
-                            pendingPromise.resolve();
-                            dispatchEvent(reportEvents.tableReload, {preservePagination: true}, reportElement);
-                            return;
-                        })
-                        .catch(Notification.exception);
-                });
+                return deleteReport(reportDelete.dataset.reportId)
+                    .then(() => addToast(getString('reportdeleted', 'core_reportbuilder')))
+                    .then(() => {
+                        dispatchEvent(reportEvents.tableReload, {preservePagination: true}, reportElement);
+                        return pendingPromise.resolve();
+                    })
+                    .catch(Notification.exception);
+            }).catch(() => {
                 return;
-            }).catch(Notification.exception);
+            });
         }
     });
 };

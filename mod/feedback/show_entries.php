@@ -86,11 +86,17 @@ if ($data = $courseselectform->get_data()) {
 navigation_node::override_active_url($baseurl);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_title($feedback->name);
+$PAGE->activityheader->set_attrs([
+    'hidecompletion' => true,
+    'description' => ''
+]);
+$PAGE->add_body_class('limitedwidth');
 echo $OUTPUT->header();
 
 /** @var \mod_feedback\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('mod_feedback');
 echo $renderer->main_action_bar($actionbar);
+echo $OUTPUT->heading(get_string('show_entries', 'mod_feedback'), 3);
 
 $current_tab = 'showentries';
 
@@ -163,4 +169,3 @@ if ($userid || $showcompleted) {
 
 // Finish the page.
 echo $OUTPUT->footer();
-

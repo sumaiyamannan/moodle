@@ -78,7 +78,7 @@ class webservice extends base {
 
         if ($haschanged) {
             $new = implode(',', array_flip($plugins));
-            add_to_config_log('webserviceprotocols', $CFG->webserviceprotocols, $new, 'core');
+            add_to_config_log('webserviceprotocols', $CFG->webserviceprotocols ?? '', $new, 'core');
             set_config('webserviceprotocols', $new);
             // Reset caches.
             \core_plugin_manager::reset_caches();
@@ -116,10 +116,6 @@ class webservice extends base {
     }
 
     public function is_uninstall_allowed() {
-        // The xmlrpc plugin contains webservice_xmlrpc_client (used by core).
-        if ($this->name == 'xmlrpc') {
-            return false;
-        }
         return true;
     }
 }

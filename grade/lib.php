@@ -25,6 +25,9 @@
 require_once($CFG->libdir . '/gradelib.php');
 require_once($CFG->dirroot . '/grade/export/lib.php');
 
+use \core_grades\output\action_bar;
+use \core_grades\output\general_action_bar;
+
 /**
  * This class iterates over all users that are graded in a course.
  * Returns detailed info about users and their grades.
@@ -703,141 +706,6 @@ function print_natural_aggregation_upgrade_notice($courseid, $context, $thispage
 }
 
 /**
- * Print grading plugin selection popup form.
- *
- * @param array   $plugin_info An array of plugins containing information for the selector
- * @param boolean $return return as string
- *
- * @return nothing or string if $return true
- */
-function print_grade_plugin_selector($plugin_info, $active_type, $active_plugin, $return=false) {
-    global $CFG, $OUTPUT, $PAGE;
-
-    $menu = array();
-    $count = 0;
-    $active = '';
-
-    foreach ($plugin_info as $plugin_type => $plugins) {
-        if ($plugin_type == 'strings') {
-            continue;
-        }
-
-        $first_plugin = reset($plugins);
-
-        $sectionname = $plugin_info['strings'][$plugin_type];
-        $section = array();
-
-        foreach ($plugins as $plugin) {
-            $link = $plugin->link->out(false);
-            $section[$link] = $plugin->string;
-            $count++;
-            if ($plugin_type === $active_type and $plugin->id === $active_plugin) {
-                $active = $link;
-            }
-        }
-
-        if ($section) {
-            $menu[] = array($sectionname=>$section);
-        }
-    }
-
-    // finally print/return the popup form
-    if ($count > 1) {
-        $select = new url_select($menu, $active, null, 'choosepluginreport');
-        $select->set_label(get_string('gradereport', 'grades'), array('class' => 'accesshide'));
-        if ($return) {
-            return $OUTPUT->render($select);
-        } else {
-            echo $OUTPUT->render($select);
-        }
-    } else {
-        // only one option - no plugin selector needed
-        return '';
-    }
-}
-
-/**
- * Print grading plugin selection tab-based navigation.
- *
- * @param string  $active_type type of plugin on current page - import, export, report or edit
- * @param string  $active_plugin active plugin type - grader, user, cvs, ...
- * @param array   $plugin_info Array of plugins
- * @param boolean $return return as string
- *
- * @return nothing or string if $return true
- */
-function grade_print_tabs($active_type, $active_plugin, $plugin_info, $return=false) {
-    global $CFG, $COURSE;
-
-    if (!isset($currenttab)) { //TODO: this is weird
-        $currenttab = '';
-    }
-
-    $tabs = array();
-    $top_row  = array();
-    $bottom_row = array();
-    $inactive = array($active_plugin);
-    $activated = array($active_type);
-
-    $count = 0;
-    $active = '';
-
-    foreach ($plugin_info as $plugin_type => $plugins) {
-        if ($plugin_type == 'strings') {
-            continue;
-        }
-
-        // If $plugins is actually the definition of a child-less parent link:
-        if (!empty($plugins->id)) {
-            $string = $plugins->string;
-            if (!empty($plugin_info[$active_type]->parent)) {
-                $string = $plugin_info[$active_type]->parent->string;
-            }
-
-            $top_row[] = new tabobject($plugin_type, $plugins->link, $string);
-            continue;
-        }
-
-        $first_plugin = reset($plugins);
-        $url = $first_plugin->link;
-
-        if ($plugin_type == 'report') {
-            $url = $CFG->wwwroot.'/grade/report/index.php?id='.$COURSE->id;
-        }
-
-        $top_row[] = new tabobject($plugin_type, $url, $plugin_info['strings'][$plugin_type]);
-
-        if ($active_type == $plugin_type) {
-            foreach ($plugins as $plugin) {
-                $bottom_row[] = new tabobject($plugin->id, $plugin->link, $plugin->string);
-                if ($plugin->id == $active_plugin) {
-                    $inactive = array($plugin->id);
-                }
-            }
-        }
-    }
-
-    // Do not display rows that contain only one item, they are not helpful.
-    if (count($top_row) > 1) {
-        $tabs[] = $top_row;
-    }
-    if (count($bottom_row) > 1) {
-        $tabs[] = $bottom_row;
-    }
-    if (empty($tabs)) {
-        return;
-    }
-
-    $rv = html_writer::div(print_tabs($tabs, $active_plugin, $inactive, $activated, true), 'grade-navigation');
-
-    if ($return) {
-        return $rv;
-    } else {
-        echo $rv;
-    }
-}
-
-/**
  * grade_get_plugin_info
  *
  * @param int    $courseid The course id
@@ -966,31 +834,30 @@ class grade_plugin_info {
 }
 
 /**
- * Prints the page headers, breadcrumb trail, page heading, (optional) dropdown navigation menu and
- * (optional) navigation tabs for any gradebook page. All gradebook pages MUST use these functions
- * in favour of the usual print_header(), print_header_simple(), print_heading() etc.
- * !IMPORTANT! Use of tabs.php file in gradebook pages is forbidden unless tabs are switched off at
- * the site level for the gradebook ($CFG->grade_navmethod = GRADE_NAVMETHOD_DROPDOWN).
+ * Prints the page headers, breadcrumb trail, page heading, (optional) navigation and for any gradebook page.
+ * All gradebook pages MUST use these functions in favour of the usual print_header(), print_header_simple(),
+ * print_heading() etc.
  *
- * @param int     $courseid Course id
- * @param string  $active_type The type of the current page (report, settings,
- *                             import, export, scales, outcomes, letters)
- * @param string  $active_plugin The plugin of the current page (grader, fullview etc...)
- * @param string  $heading The heading of the page. Tries to guess if none is given
+ * @param int $courseid Course id
+ * @param string $active_type The type of the current page (report, settings,
+ *                            import, export, scales, outcomes, letters)
+ * @param string|null $active_plugin The plugin of the current page (grader, fullview etc...)
+ * @param string|bool $heading The heading of the page. Tries to guess if none is given
  * @param boolean $return Whether to return (true) or echo (false) the HTML generated by this function
- * @param string  $bodytags Additional attributes that will be added to the <body> tag
- * @param string  $buttons Additional buttons to display on the page
- * @param boolean $shownavigation should the gradebook navigation drop down (or tabs) be shown?
- * @param string  $headerhelpidentifier The help string identifier if required.
- * @param string  $headerhelpcomponent The component for the help string.
- * @param stdClass $user The user object for use with the user context header.
- *
+ * @param string|bool $buttons Additional buttons to display on the page
+ * @param boolean $shownavigation should the gradebook navigation be shown?
+ * @param string|null $headerhelpidentifier The help string identifier if required.
+ * @param string|null $headerhelpcomponent The component for the help string.
+ * @param stdClass|null $user The user object for use with the user context header.
+ * @param actionbar|null $actionbar The actions bar which will be displayed on the page if $shownavigation is set
+ *                                  to true. If $actionbar is not explicitly defined, the general action bar
+ *                                  (\core_grades\output\general_action_bar) will be used by default.
+ * @param boolean $showtitle If set to false just show course full name as a title.
  * @return string HTML code or nothing if $return == false
  */
-function print_grade_page_head($courseid, $active_type, $active_plugin=null,
-                               $heading = false, $return=false,
-                               $buttons=false, $shownavigation=true, $headerhelpidentifier = null, $headerhelpcomponent = null,
-                               $user = null) {
+function print_grade_page_head(int $courseid, string $active_type, ?string $active_plugin = null, $heading = false,
+       bool $return = false, $buttons = false, bool $shownavigation = true, ?string $headerhelpidentifier = null,
+       ?string $headerhelpcomponent = null, ?stdClass $user = null, ?action_bar $actionbar = null, $showtitle = true) {
     global $CFG, $OUTPUT, $PAGE;
 
     // Put a warning on all gradebook pages if the course has modules currently scheduled for background deletion.
@@ -1011,7 +878,9 @@ function print_grade_page_head($courseid, $active_type, $active_plugin=null,
     $stractive_plugin = ($active_plugin) ? $plugin_info['strings']['active_plugin_str'] : $heading;
     $stractive_type = $plugin_info['strings'][$active_type];
 
-    if (empty($plugin_info[$active_type]->id) || !empty($plugin_info[$active_type]->parent)) {
+    if (!$showtitle) {
+        $title = $PAGE->course->fullname;
+    } else if (empty($plugin_info[$active_type]->id) || !empty($plugin_info[$active_type]->parent)) {
         $title = $PAGE->course->fullname.': ' . $stractive_type . ': ' . $stractive_plugin;
     } else {
         $title = $PAGE->course->fullname.': ' . $stractive_plugin;
@@ -1024,6 +893,8 @@ function print_grade_page_head($courseid, $active_type, $active_plugin=null,
     }
     $PAGE->set_title(get_string('grades') . ': ' . $stractive_type);
     $PAGE->set_heading($title);
+    $PAGE->set_secondary_active_tab('grades');
+
     if ($buttons instanceof single_button) {
         $buttons = $OUTPUT->render($buttons);
     }
@@ -1048,54 +919,45 @@ function print_grade_page_head($courseid, $active_type, $active_plugin=null,
         $heading = $stractive_plugin;
     }
 
-    if ($shownavigation) {
-        $navselector = null;
-        if ($courseid != SITEID &&
-                ($CFG->grade_navmethod == GRADE_NAVMETHOD_COMBO || $CFG->grade_navmethod == GRADE_NAVMETHOD_DROPDOWN)) {
-            // It's absolutely essential that this grade plugin selector is shown after the user header. Just ask Fred.
-            $navselector = print_grade_plugin_selector($plugin_info, $active_type, $active_plugin, true);
-            if ($return) {
-                $returnval .= $navselector;
-            } else if (!isset($user)) {
-                echo $navselector;
-            }
-        }
+    if (!$showtitle) {
+        $heading = '';
+    }
 
-        $output = '';
-        // Add a help dialogue box if provided.
-        if (isset($headerhelpidentifier)) {
-            $output = $OUTPUT->heading_with_help($heading, $headerhelpidentifier, $headerhelpcomponent);
-        } else {
-            if (isset($user)) {
-                $output = $OUTPUT->context_header(
-                        array(
-                            'heading' => html_writer::link(new moodle_url('/user/view.php', array('id' => $user->id,
-                                'course' => $courseid)), fullname($user)),
-                            'user' => $user,
-                            'usercontext' => context_user::instance($user->id)
-                        ), 2
-                    ) . $navselector;
-            } else {
-                $output = $OUTPUT->heading($heading);
-            }
+    if ($shownavigation) {
+        $renderer = $PAGE->get_renderer('core_grades');
+        // If the navigation action bar is not explicitly defined, use the general (default) action bar.
+        if (!$actionbar) {
+            $actionbar = new general_action_bar($PAGE->context, $PAGE->url, $active_type, $active_plugin);
         }
 
         if ($return) {
-            $returnval .= $output;
+            $returnval .= $renderer->render_action_bar($actionbar);
         } else {
-            echo $output;
-        }
-
-        if ($courseid != SITEID &&
-                ($CFG->grade_navmethod == GRADE_NAVMETHOD_COMBO || $CFG->grade_navmethod == GRADE_NAVMETHOD_TABS)) {
-            $returnval .= grade_print_tabs($active_type, $active_plugin, $plugin_info, $return);
+            echo $renderer->render_action_bar($actionbar);
         }
     }
 
-    $returnval .= print_natural_aggregation_upgrade_notice($courseid,
-                                                           context_course::instance($courseid),
-                                                           $PAGE->url,
-                                                           $return);
+    $output = '';
+    // Add a help dialogue box if provided.
+    if (isset($headerhelpidentifier)) {
+        $output = $OUTPUT->heading_with_help($heading, $headerhelpidentifier, $headerhelpcomponent);
+    } else {
+        if (isset($user)) {
+            $renderer = $PAGE->get_renderer('core_grades');
+            $output = $OUTPUT->heading($renderer->user_heading($user, $courseid));
+        } else {
+            $output = $OUTPUT->heading($heading);
+        }
+    }
+
+    if ($return) {
+        $returnval .= $output;
+    } else {
+        echo $output;
+    }
+
+    $returnval .= print_natural_aggregation_upgrade_notice($courseid, context_course::instance($courseid), $PAGE->url,
+        $return);
 
     if ($return) {
         return $returnval;
@@ -1590,7 +1452,7 @@ class grade_structure {
                         if (isset($modinfo->instances[$module][$instanceid])) {
                             $icon->url = $modinfo->instances[$module][$instanceid]->get_icon_url();
                         } else {
-                            $icon->pix = 'icon';
+                            $icon->pix = 'monologo';
                             $icon->component = $element['object']->itemmodule;
                         }
                         $icon->title = s(get_string('modulename', $element['object']->itemmodule));
@@ -1624,6 +1486,48 @@ class grade_structure {
         }
 
         return $outputstr;
+    }
+
+    /**
+     * Returns the string that describes the type of the element.
+     *
+     * @param array $element An array representing an element in the grade_tree
+     * @return string The string that describes the type of the grade element
+     */
+    public function get_element_type_string(array $element): string {
+        // If the element is a grade category.
+        if ($element['type'] == 'category') {
+            return get_string('category', 'grades');
+        }
+        // If the element is a grade item.
+        if (in_array($element['type'], ['item', 'courseitem', 'categoryitem'])) {
+            // If calculated grade item.
+            if ($element['object']->is_calculated()) {
+                return get_string('calculatedgrade', 'grades');
+            }
+            // If aggregated type grade item.
+            if ($element['object']->is_aggregate_item()) {
+                return get_string('aggregation', 'core_grades');
+            }
+            // If external grade item (module, plugin, etc.).
+            if ($element['object']->is_external_item()) {
+                // If outcome grade item.
+                if ($element['object']->is_outcome_item()) {
+                    return get_string('outcome', 'grades');
+                }
+                return get_string('modulename', $element['object']->itemmodule);
+            }
+            // If manual grade item.
+            if ($element['object']->itemtype == 'manual') {
+                // If outcome grade item.
+                if ($element['object']->is_outcome_item()) {
+                    return get_string('outcome', 'grades');
+                }
+                return get_string('manualitem', 'grades');
+            }
+        }
+
+        return '';
     }
 
     /**
@@ -1804,6 +1708,36 @@ class grade_structure {
         $title = get_string('gradeanalysis', 'core_grades');
         return $OUTPUT->action_icon($url, new pix_icon('t/preview', ''), null,
                 ['title' => $title, 'aria-label' => $title]);
+    }
+
+    /**
+     * Returns an action menu for the grade.
+     *
+     * @param grade_grade $grade A grade_grade object
+     * @return string
+     */
+    public function get_grade_action_menu(grade_grade $grade) : string {
+        global $OUTPUT;
+
+        $menuitems = [];
+
+        $url = $this->get_grade_analysis_url($grade);
+        if ($url) {
+            $title = get_string('gradeanalysis', 'core_grades');
+            $menuitems[] = new action_menu_link_secondary($url, null, $title);
+        }
+
+        if ($menuitems) {
+            $menu = new action_menu($menuitems);
+            $icon = $OUTPUT->pix_icon('i/dropdown', get_string('actions'));
+            $extraclasses = 'btn btn-icon icon-size-2 bg-secondary d-flex align-items-center justify-content-center';
+            $menu->set_menu_trigger($icon, $extraclasses);
+            $menu->set_menu_left();
+
+            return $OUTPUT->render($menu);
+        } else {
+            return '';
+        }
     }
 
     /**
@@ -2854,7 +2788,8 @@ function grade_button($type, $courseid, $object) {
 function grade_extend_settings($plugininfo, $courseid) {
     global $PAGE;
 
-    $gradenode = $PAGE->settingsnav->prepend(get_string('gradeadministration', 'grades'), null, navigation_node::TYPE_CONTAINER);
+    $gradenode = $PAGE->settingsnav->prepend(get_string('gradeadministration', 'grades'), null, navigation_node::TYPE_CONTAINER,
+        null, 'gradeadmin');
 
     $strings = array_shift($plugininfo);
 
@@ -3059,7 +2994,7 @@ abstract class grade_helper {
      * @return array
      */
     public static function get_plugins_reports($courseid) {
-        global $SITE;
+        global $SITE, $CFG;
 
         if (self::$gradereports !== null) {
             return self::$gradereports;
@@ -3070,6 +3005,11 @@ abstract class grade_helper {
         foreach (core_component::get_plugin_list('gradereport') as $plugin => $plugindir) {
             //some reports make no sense if we're not within a course
             if ($courseid==$SITE->id && ($plugin=='grader' || $plugin=='user')) {
+                continue;
+            }
+
+            // Remove outcomes report if outcomes not enabled.
+            if ($plugin === 'outcomes' && empty($CFG->enableoutcomes)) {
                 continue;
             }
 
@@ -3090,7 +3030,7 @@ abstract class grade_helper {
 
             // Add link to preferences tab if such a page exists
             if (file_exists($plugindir.'/preferences.php')) {
-                $url = new moodle_url('/grade/report/'.$plugin.'/preferences.php', array('id'=>$courseid));
+                $url = new moodle_url('/grade/report/'.$plugin.'/preferences.php', array('id' => $courseid));
                 $gradepreferences[$plugin] = new grade_plugin_info($plugin, $url,
                     get_string('preferences', 'grades') . ': ' . $pluginstr);
             }
@@ -3381,6 +3321,24 @@ abstract class grade_helper {
             $result[$record->id] = $record->aggregationcoef2;
         }
         return $result;
+    }
+
+    /**
+     * Resets all static caches.
+     *
+     * @return void
+     */
+    public static function reset_caches() {
+        self::$managesetting = null;
+        self::$gradereports = null;
+        self::$gradereportpreferences = null;
+        self::$scaleinfo = null;
+        self::$outcomeinfo = null;
+        self::$letterinfo = null;
+        self::$importplugins = null;
+        self::$exportplugins = null;
+        self::$pluginstrings = null;
+        self::$aggregationstrings = null;
     }
 }
 

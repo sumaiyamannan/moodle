@@ -27,11 +27,12 @@ class events {
 
     /**
      * Event name matcher.
+     *
      * @var $events
      */
     public static $events = [
         'create' => 'activity_created',
-        'view' => 'activity_viewed',
+        'view' => 'course_module_viewed',
         'update' => 'activity_updated',
         'delete' => 'activity_deleted',
         'meeting_create' => 'meeting_created',

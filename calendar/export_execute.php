@@ -5,6 +5,8 @@ require_once('../config.php');
 require_once($CFG->dirroot.'/calendar/lib.php');
 require_once($CFG->libdir.'/bennu/bennu.inc.php');
 
+raise_memory_limit(MEMORY_HUGE);
+
 $userid = optional_param('userid', 0, PARAM_INT);
 $username = optional_param('username', '', PARAM_TEXT);
 $authtoken = required_param('authtoken', PARAM_ALPHANUM);
@@ -30,6 +32,8 @@ $authusername = !empty($username) && $authtoken == sha1($username . $user->passw
 if (!$authuserid && !$authusername) {
     die('Invalid authentication');
 }
+
+$PAGE->set_context(context_system::instance());
 
 // Get the calendar type we are using.
 $calendartype = \core_calendar\type_factory::get_calendar_instance();
@@ -253,13 +257,15 @@ if(empty($serialized)) {
 
 $filename = 'icalexport.ics';
 
-header('Last-Modified: '. gmdate('D, d M Y H:i:s', time()) .' GMT');
-header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0');
-header('Expires: '. gmdate('D, d M Y H:i:s', 0) .'GMT');
-header('Pragma: no-cache');
-header('Accept-Ranges: none'); // Comment out if PDFs do not work...
-header('Content-disposition: attachment; filename='.$filename);
-header('Content-length: '.strlen($serialized));
-header('Content-type: text/calendar; charset=utf-8');
+if (!defined('BEHAT_SITE_RUNNING')) {
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', time()) . ' GMT');
+    header('Cache-Control: private, must-revalidate, pre-check=0, post-check=0, max-age=0');
+    header('Expires: ' . gmdate('D, d M Y H:i:s', 0) . 'GMT');
+    header('Pragma: no-cache');
+    header('Accept-Ranges: none'); // Comment out if PDFs do not work...
+    header('Content-disposition: attachment; filename=' . $filename);
+    header('Content-length: ' . strlen($serialized));
+    header('Content-type: text/calendar; charset=utf-8');
+}
 
 echo $serialized;

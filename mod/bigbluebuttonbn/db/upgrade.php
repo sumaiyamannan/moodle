@@ -25,8 +25,8 @@
  */
 
 use mod_bigbluebuttonbn\plugin;
-
-defined('MOODLE_INTERNAL') || die();
+use mod_bigbluebuttonbn\local\config;
+use mod_bigbluebuttonbn\task\upgrade_recordings_task;
 
 /**
  * Performs data migrations and updates on upgrade.
@@ -395,31 +395,91 @@ function xmldb_bigbluebuttonbn_upgrade($oldversion = 0) {
         upgrade_mod_savepoint(true, 2021083100, 'bigbluebuttonbn');
     }
 
-    if ($oldversion < 2021083101) {
-        // Create adhoc task for upgrading of existing bigbluebuttonbn_logs related to recordings.
-        $task = new \stdClass();
-        $task->classname = '\mod_bigbluebuttonbn\task\upgrade_recordings';
-        $task->component = 'mod_bigbluebuttonbn';
-
-        // Next run time based from nextruntime computation in \core\task\manager::queue_adhoc_task().
-        $nextruntime = time() - 1;
-        $task->nextruntime = $nextruntime;
-        $DB->insert_record('task_adhoc', $task);
-
-        // Create adhoc task for upgrading of existing bigbluebuttonbn_logs related to imported recordings.
-        $task = new \stdClass();
-        $task->classname = '\mod_bigbluebuttonbn\task\upgrade_imported_recordings';
-        $task->component = 'mod_bigbluebuttonbn';
-
-        // Next run time based from nextruntime computation in \core\task\manager::queue_adhoc_task().
-        $nextruntime = time() - 1;
-        $task->nextruntime = $nextruntime;
-        $DB->insert_record('task_adhoc', $task);
-
+    if ($oldversion < 2021091408) {
+        // Change BigBliueButton Server credentials to new defaults if test-install is being used.
+        if (config::get('server_url') == 'http://test-install.blindsidenetworks.com/bigbluebutton/') {
+            set_config('bigbluebuttonbn_server_url', config::DEFAULT_SERVER_URL);
+            set_config('bigbluebuttonbn_shared_secret', config::DEFAULT_SHARED_SECRET);
+        }
         // Bigbluebuttonbn savepoint reached.
-        upgrade_mod_savepoint(true, 2021083101, 'bigbluebuttonbn');
+        upgrade_mod_savepoint(true, 2021091408, 'bigbluebuttonbn');
     }
 
+    if ($oldversion < 2022021601) {
+        // Create adhoc task for upgrading of existing bigbluebuttonbn_logs related to recordings.
+        upgrade_recordings_task::schedule_upgrade_per_meeting();
+        upgrade_recordings_task::schedule_upgrade_per_meeting(true);
+        // Bigbluebuttonbn savepoint reached.
+        upgrade_mod_savepoint(true, 2022021601, 'bigbluebuttonbn');
+    }
+
+    // Automatically generated Moodle v4.0.0 release upgrade line.
+    // Put any upgrade step following this.
+
+    if ($oldversion < 2022050600) {
+
+        set_config('bigbluebuttonbn_default_dpa_accepted', false);
+
+        // If the default server configuration is used.
+        if (config::get('server_url') === config::DEFAULT_SERVER_URL) {
+            // Disable the BigBlueButton activity module.
+            $DB->set_field('modules', 'visible', 0, ['name' => 'bigbluebuttonbn']);
+
+            // Use an adhoc task to send a notification to inform the admin that the BigBlueButton activity module
+            // has been disabled and they are required to confirm their acceptance of the data processing agreement
+            // prior to re-enabling it.
+            $notificationtask = new mod_bigbluebuttonbn\task\send_bigbluebutton_module_disabled_notification();
+            core\task\manager::queue_adhoc_task($notificationtask);
+        }
+
+        // Bigbluebuttonbn savepoint reached.
+        upgrade_mod_savepoint(true, 2022050600, 'bigbluebuttonbn');
+    }
+    if ($oldversion < 2022080400) {
+
+        // Define field lockonjoin to be dropped from bigbluebuttonbn.
+        $table = new xmldb_table('bigbluebuttonbn');
+        $field = new xmldb_field('lockonjoin');
+        // Conditionally launch drop field lockonjoin.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        $field = new xmldb_field('lockonjoinconfigurable');
+        // Conditionally launch drop field lockonjoinconfigurable.
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        // Bigbluebuttonbn savepoint reached.
+        upgrade_mod_savepoint(true, 2022080400, 'bigbluebuttonbn');
+    }
+    if ($oldversion < 2022101900) {
+        $table = new xmldb_table('bigbluebuttonbn');
+
+        $field = new xmldb_field('guestallowed', XMLDB_TYPE_INTEGER, '2', null, null, null, '0', 'completionengagementemojis');
+        // Conditionally launch add field guestallowed.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('mustapproveuser', XMLDB_TYPE_INTEGER, '2', null, null, null, '1', 'guestallowed');
+        // Conditionally launch add field mustapproveuser.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('guestlinkuid', XMLDB_TYPE_CHAR, '1024', null, null, null, null, 'mustapproveuser');
+        // Conditionally launch add field guestlinkuid.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('guestpassword', XMLDB_TYPE_CHAR, '255', null, null, null, null, 'guestlinkuid');
+        // Conditionally launch add field guestpassword.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2022101900, 'bigbluebuttonbn');
+    }
     return true;
 }
 

@@ -43,6 +43,7 @@ if ($course->id == SITEID) {
 $PAGE->set_url('/mod/feedback/view.php', array('id' => $cm->id));
 $PAGE->set_title($feedback->name);
 $PAGE->set_heading($course->fullname);
+$PAGE->add_body_class('limitedwidth');
 
 // Check access to the given courseid.
 if ($courseid AND $courseid != SITEID) {
@@ -72,9 +73,6 @@ $renderer = $PAGE->get_renderer('mod_feedback');
 // Trigger module viewed event.
 $feedbackcompletion->trigger_module_viewed();
 
-/// Print the page header
-echo $OUTPUT->header();
-
 /// Print the main part of the page
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
@@ -87,10 +85,10 @@ if ($courseid) {
 }
 $preview = html_writer::link($previewlnk, $previewimg);
 
-// Render the activity information.
-$completiondetails = \core_completion\cm_completion_details::get_instance($cm, $USER->id);
-$activitydates = \core\activity_dates::get_dates_for_module($cm, $USER->id);
-echo $OUTPUT->activity_information($cm, $completiondetails, $activitydates);
+$PAGE->activityheader->set_description("");
+
+// Print the page header.
+echo $OUTPUT->header();
 
 // Show description.
 echo $OUTPUT->box_start('generalbox feedback_description');
@@ -152,4 +150,3 @@ if ($feedbackcompletion->can_complete()) {
 }
 
 echo $OUTPUT->footer();
-

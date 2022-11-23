@@ -60,6 +60,8 @@ if ($categoryid) {
 }
 
 $PAGE->set_pagelayout('coursecategory');
+$PAGE->set_primary_active_tab('home');
+$PAGE->add_body_class('limitedwidth');
 $courserenderer = $PAGE->get_renderer('core', 'course');
 
 $PAGE->set_heading($heading);

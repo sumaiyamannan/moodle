@@ -58,7 +58,10 @@ define(
         // Eventually, core_courseformat/local/content/actions will handle all actions for
         // component compatible formats and the default actions.js won't be necessary anymore.
         // Meanwhile, we filter the migrated actions.
-        const componentActions = ['moveSection', 'moveCm', 'addSection', 'deleteSection'];
+        const componentActions = [
+            'moveSection', 'moveCm', 'addSection', 'deleteSection', 'sectionHide', 'sectionShow',
+            'cmHide', 'cmShow', 'cmStealth',
+        ];
 
         // The course reactive instance.
         const courseeditor = editor.getCurrentCourseEditor();
@@ -79,7 +82,8 @@ define(
             TOGGLE: '.toggle-display,.dropdown-toggle',
             SECTIONLI: 'li.section',
             SECTIONACTIONMENU: '.section_action_menu',
-            ADDSECTIONS: '.changenumsections [data-add-sections]'
+            ADDSECTIONS: '.changenumsections [data-add-sections]',
+            SECTIONBADGES: '[data-region="sectionbadges"]',
         };
 
         Y.use('moodle-course-coursebase', function() {
@@ -581,9 +585,11 @@ define(
             if (action === 'hide' || action === 'show') {
                 if (action === 'hide') {
                     sectionElement.addClass('hidden');
+                    setSectionBadge(sectionElement[0], 'hiddenfromstudents', true, false);
                     replaceActionItem(actionItem, 'i/show',
                         'showfromothers', 'format_' + courseformat, 'show');
                 } else {
+                    setSectionBadge(sectionElement[0], 'hiddenfromstudents', false, false);
                     sectionElement.removeClass('hidden');
                     replaceActionItem(actionItem, 'i/hide',
                         'hidefromothers', 'format_' + courseformat, 'hide');
@@ -613,11 +619,13 @@ define(
                 replaceActionItem(actionItem, 'i/marked',
                     'highlightoff', 'core', 'removemarker');
                 courseeditor.dispatch('legacySectionAction', action, sectionid);
+                setSectionBadge(sectionElement[0], 'iscurrent', true, true);
             } else if (action === 'removemarker') {
                 sectionElement.removeClass('current');
                 replaceActionItem(actionItem, 'i/marker',
                     'highlight', 'core', 'setmarker');
                 courseeditor.dispatch('legacySectionAction', action, sectionid);
+                setSectionBadge(sectionElement[0], 'iscurrent', false, true);
             }
         };
 
@@ -722,6 +730,35 @@ define(
             return true;
         };
 
+        /**
+         * Sets the section badge in the section header.
+         *
+         * @param {JQuery} sectionElement section element we perform action on
+         * @param {String} badgetype the type of badge this is for
+         * @param {bool} add true to add, false to remove
+         * @param {boolean} removeOther in case of adding a badge, whether to remove all other.
+         */
+        var setSectionBadge = function(sectionElement, badgetype, add, removeOther) {
+            const sectionbadges = sectionElement.querySelector(SELECTOR.SECTIONBADGES);
+            if (!sectionbadges) {
+                return;
+            }
+            const badge = sectionbadges.querySelector('[data-type="' + badgetype + '"]');
+            if (!badge) {
+                return;
+            }
+            if (add) {
+                if (removeOther) {
+                    document.querySelectorAll('[data-type="' + badgetype + '"]').forEach((b) => {
+                        b.classList.add('d-none');
+                    });
+                }
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+        };
+
         // Register a function to be executed after D&D of an activity.
         Y.use('moodle-course-coursebase', function() {
             M.course.coursebase.register_module({
@@ -817,11 +854,7 @@ define(
 
                     case 'hide':
                     case 'show':
-                        cm.visible = (action === 'show') ? true : false;
-                        break;
-
                     case 'duplicate':
-                        // Duplicate requires to get extra data from the server.
                         courseeditor.dispatch('cmState', affectedids);
                         break;
                 }

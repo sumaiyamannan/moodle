@@ -216,8 +216,7 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
                 if (!empty($prefix)) {
                     $redis->setOption(Redis::OPT_PREFIX, $prefix);
                 }
-                // Database setting option...
-                $this->isready = $this->ping($redis);
+                $this->isready = true;
             } else {
                 $this->isready = false;
             }
@@ -468,7 +467,6 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
      * Cleans up after an instance of the store.
      */
     public function instance_deleted() {
-        $this->purge();
         $this->redis->close();
         unset($this->redis);
     }
@@ -680,7 +678,11 @@ class cachestore_redis extends cache_store implements cache_is_key_aware, cache_
      * @return int|null Memory used by Redis or null if we don't know
      */
     public function store_total_size(): ?int {
-        $details = $this->redis->info('MEMORY');
+        try {
+            $details = $this->redis->info('MEMORY');
+        } catch (\RedisException $e) {
+            return null;
+        }
         if (empty($details['used_memory'])) {
             return null;
         } else {

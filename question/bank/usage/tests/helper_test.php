@@ -25,7 +25,7 @@ namespace qbank_usage;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @coversDefaultClass \qbank_usage\helper
  */
-class qbank_usage_helper_test extends \advanced_testcase {
+class helper_test extends \advanced_testcase {
 
     /**
      * @var \stdClass $quiz
@@ -98,7 +98,7 @@ class qbank_usage_helper_test extends \advanced_testcase {
      */
     public function test_get_question_entry_usage_count() {
         foreach ($this->questions as $question) {
-            $count = helper::get_question_entry_usage_count($question);
+            $count = helper::get_question_entry_usage_count(\question_bank::load_question($question->id));
             // Test that the attempt data matches the usage data for the count.
             $this->assertEquals(1, $count);
         }

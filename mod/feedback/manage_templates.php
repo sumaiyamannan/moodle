@@ -71,13 +71,17 @@ if ($templateid) {
     $successurl = new moodle_url('/mod/feedback/manage_templates.php', ['id' => $id]);
     redirect($url, get_string('template_deleted', 'feedback'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
-
+$PAGE->activityheader->set_attrs([
+    "hidecompletion" => true,
+    "description" => ''
+]);
 echo $OUTPUT->header();
 /** @var \mod_feedback\output\renderer $renderer */
 $renderer = $PAGE->get_renderer('mod_feedback');
 if (!$mode) {
     echo $renderer->main_action_bar($actionbar);
 }
+echo $OUTPUT->heading(get_string('templates', 'mod_feedback'), 3);
 
 // First we get the course templates.
 $templates = feedback_get_template_list($course, 'own');

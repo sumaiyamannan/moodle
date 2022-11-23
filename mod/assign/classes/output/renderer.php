@@ -168,7 +168,7 @@ class renderer extends \plugin_renderer_base {
             $fullname = fullname($summary->user, $summary->viewfullnames);
             $extrainfo = array();
             foreach ($summary->extrauserfields as $extrafield) {
-                $extrainfo[] = $summary->user->$extrafield;
+                $extrainfo[] = s($summary->user->$extrafield);
             }
             if (count($extrainfo)) {
                 $fullname .= ' (' . implode(', ', $extrainfo) . ')';
@@ -230,10 +230,6 @@ class renderer extends \plugin_renderer_base {
      * @return string
      */
     public function render_assign_header(assign_header $header) {
-        global $USER;
-
-        $o = '';
-
         if ($header->subpage) {
             $this->page->navbar->add($header->subpage, $header->subpageurl);
             $args = ['contextname' => $header->context->get_context_name(false, true), 'subpage' => $header->subpage];
@@ -248,33 +244,26 @@ class renderer extends \plugin_renderer_base {
         $this->page->set_title($title);
         $this->page->set_heading($this->page->course->fullname);
 
-        $o .= $this->output->header();
-        if (!$this->page->has_secondary_navigation()) {
-            $o .= $this->output->heading($heading);
-        }
-
-        // Show the activity information output component.
-        $modinfo = get_fast_modinfo($header->assign->course);
-        $cm = $modinfo->get_cm($header->coursemoduleid);
-        $cmcompletion = \core_completion\cm_completion_details::get_instance($cm, $USER->id);
-        $activitydates = \core\activity_dates::get_dates_for_module($cm, $USER->id);
-        $o .= $this->output->activity_information($cm, $cmcompletion, $activitydates);
-
-        if ($header->preface) {
-            $o .= $header->preface;
-        }
-
-        if ($header->showintro) {
-            $o .= $this->output->box_start('generalbox boxaligncenter', 'intro');
-            $o .= format_module_intro('assign', $header->assign, $header->coursemoduleid);
-            if ($header->activity) {
-                $o .= $this->format_activity_text($header->assign, $header->coursemoduleid);
+        $description = $header->preface;
+        if ($header->showintro || $header->activity) {
+            $description = $this->output->box_start('generalbox boxaligncenter');
+            if ($header->showintro) {
+                $description .= format_module_intro('assign', $header->assign, $header->coursemoduleid);
             }
-            $o .= $header->postfix;
-            $o .= $this->output->box_end();
+            if ($header->activity) {
+                $description .= $this->format_activity_text($header->assign, $header->coursemoduleid);
+            }
+            $description .= $header->postfix;
+            $description .= $this->output->box_end();
         }
 
-        return $o;
+        $activityheader = $this->page->activityheader;
+        $activityheader->set_attrs([
+            'title' => $activityheader->is_title_allowed() ? $heading : '',
+            'description' => $description
+        ]);
+
+        return $this->output->header();
     }
 
     /**
@@ -299,6 +288,12 @@ class renderer extends \plugin_renderer_base {
         $o = '';
         $o .= $this->output->container_start('gradingsummary');
         $o .= $this->output->heading(get_string('gradingsummary', 'assign'), 3);
+
+        if (isset($summary->cm)) {
+            $currenturl = new \moodle_url('/mod/assign/view.php', array('id' => $summary->cm->id));
+            $o .= groups_print_activity_menu($summary->cm, $currenturl->out(), true);
+        }
+
         $o .= $this->output->box_start('boxaligncenter gradingsummarytable');
         $t = new \html_table();
         $t->attributes['class'] = 'generaltable table-bordered';
@@ -374,6 +369,14 @@ class renderer extends \plugin_renderer_base {
                 }
             }
 
+        }
+
+        // Add time limit info if there is one.
+        $timelimitenabled = get_config('assign', 'enabletimelimit');
+        if ($timelimitenabled && $summary->timelimit > 0) {
+            $cell1content = get_string('timelimit', 'assign');
+            $cell2content = format_time($summary->timelimit);
+            $this->add_table_row_tuple($t, $cell1content, $cell2content, [], []);
         }
 
         // All done - write the table.
@@ -857,86 +860,6 @@ class renderer extends \plugin_renderer_base {
         $o .= \html_writer::table($t);
         $o .= $this->output->box_end();
 
-        // Links.
-        if ($status->view == assign_submission_status::STUDENT_VIEW) {
-            if ($status->canedit) {
-                if (!$submission || $submission->status == ASSIGN_SUBMISSION_STATUS_NEW) {
-                    $o .= $this->output->box_start('generalbox submissionaction');
-                    $urlparams = array('id' => $status->coursemoduleid, 'action' => 'editsubmission');
-
-                    if ($timelimitenabled && empty($submission->timestarted)) {
-                        $confirmation = new \confirm_action(
-                            get_string(
-                                'confirmstart',
-                                'assign',
-                                format_time($status->timelimit)
-                            ),
-                            null,
-                            get_string('beginassignment', 'assign')
-                        );
-                        $o .= $this->output->action_link(
-                            new \moodle_url('/mod/assign/view.php', $urlparams),
-                            get_string('beginassignment', 'assign'),
-                            $confirmation,
-                            array('class' => 'btn btn-primary')
-                        );
-                    } else {
-                        $o .= $this->output->single_button(
-                            new \moodle_url('/mod/assign/view.php', $urlparams),
-                            get_string('addsubmission', 'assign'), 'get', array('primary' => true)
-                        );
-                    }
-
-                    $o .= $this->output->box_start('boxaligncenter submithelp');
-                    $o .= get_string('addsubmission_help', 'assign');
-                    $o .= $this->output->box_end();
-                    $o .= $this->output->box_end();
-                } else if ($submission->status == ASSIGN_SUBMISSION_STATUS_REOPENED) {
-                    $o .= $this->output->box_start('generalbox submissionaction');
-                    $urlparams = array('id' => $status->coursemoduleid,
-                                       'action' => 'editprevioussubmission',
-                                       'sesskey'=>sesskey());
-                    $o .= $this->output->single_button(new \moodle_url('/mod/assign/view.php', $urlparams),
-                                                       get_string('addnewattemptfromprevious', 'assign'), 'get');
-                    $o .= $this->output->box_start('boxaligncenter submithelp');
-                    $o .= get_string('addnewattemptfromprevious_help', 'assign');
-                    $o .= $this->output->box_end();
-                    $o .= $this->output->box_end();
-                    $o .= $this->output->box_start('generalbox submissionaction');
-                    $urlparams = array('id' => $status->coursemoduleid, 'action' => 'editsubmission');
-                    $o .= $this->output->single_button(new \moodle_url('/mod/assign/view.php', $urlparams),
-                                                       get_string('addnewattempt', 'assign'), 'get');
-                    $o .= $this->output->box_start('boxaligncenter submithelp');
-                    $o .= get_string('addnewattempt_help', 'assign');
-                    $o .= $this->output->box_end();
-                    $o .= $this->output->box_end();
-                } else {
-                    $o .= $this->output->box_start('generalbox submissionaction');
-                    $urlparams = array('id' => $status->coursemoduleid, 'action' => 'editsubmission');
-                    $o .= $this->output->single_button(new \moodle_url('/mod/assign/view.php', $urlparams),
-                                                       get_string('editsubmission', 'assign'), 'get');
-                    $urlparams = array('id' => $status->coursemoduleid, 'action' => 'removesubmissionconfirm');
-                    $o .= $this->output->single_button(new \moodle_url('/mod/assign/view.php', $urlparams),
-                                                       get_string('removesubmission', 'assign'), 'get');
-                    $o .= $this->output->box_start('boxaligncenter submithelp');
-                    $o .= get_string('editsubmission_help', 'assign');
-                    $o .= $this->output->box_end();
-                    $o .= $this->output->box_end();
-                }
-            }
-
-            if ($status->cansubmit) {
-                $urlparams = array('id' => $status->coursemoduleid, 'action'=>'submit');
-                $o .= $this->output->box_start('generalbox submissionaction');
-                $o .= $this->output->single_button(new \moodle_url('/mod/assign/view.php', $urlparams),
-                                                   get_string('submitassignment', 'assign'), 'get');
-                $o .= $this->output->box_start('boxaligncenter submithelp');
-                $o .= get_string('submitassignment_help', 'assign');
-                $o .= $this->output->box_end();
-                $o .= $this->output->box_end();
-            }
-        }
-
         $o .= $this->output->container_end();
         return $o;
     }
@@ -1382,7 +1305,7 @@ class renderer extends \plugin_renderer_base {
 
         // There is a submission, display the relevant early/late message.
         if ($submission && $submission->status == ASSIGN_SUBMISSION_STATUS_SUBMITTED) {
-            $latecalculation = $submission->timemodified - ($timelimitenabledbeforeduedate ? $submission->timecreated : 0);
+            $latecalculation = $submission->timemodified - ($timelimitenabledbeforeduedate ? $submission->timestarted : 0);
             $latethreshold = $timelimitenabledbeforeduedate ? $status->timelimit : $status->duedate;
             $earlystring = $timelimitenabledbeforeduedate ? 'submittedundertime' : 'submittedearly';
             $latestring = $timelimitenabledbeforeduedate ? 'submittedovertime' : 'submittedlate';

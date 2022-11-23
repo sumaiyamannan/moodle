@@ -30,7 +30,7 @@ feedback_init_feedback_session();
 $id = required_param('id', PARAM_INT);
 
 if (($formdata = data_submitted()) AND !confirm_sesskey()) {
-    print_error('invalidsesskey');
+    throw new \moodle_exception('invalidsesskey');
 }
 
 $switchitemrequired = optional_param('switchitemrequired', false, PARAM_INT);
@@ -85,6 +85,11 @@ $PAGE->set_url($url);
 $PAGE->set_heading($course->fullname);
 $PAGE->set_title($feedback->name);
 $actionbar = new \mod_feedback\output\edit_action_bar($cm->id, $url, $lastposition);
+$PAGE->activityheader->set_attrs([
+    'hidecompletion' => true,
+    'description' => ''
+]);
+$PAGE->add_body_class('limitedwidth');
 
 //Adding the javascript module for the items dragdrop.
 if (count($feedbackitems) > 1) {

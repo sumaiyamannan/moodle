@@ -100,6 +100,7 @@ if ($iscoursecalendar && !empty($courseid)) {
         get_string('calendar', 'calendar'),
         new moodle_url('/calendar/view.php', ['view' => 'month', 'course' => $course->id])
     );
+    $PAGE->set_secondary_navigation(false);
 } else if (!empty($categoryid)) {
     core_course_category::get($categoryid); // Check that category exists and can be accessed.
     $PAGE->set_category_by_id($categoryid);
@@ -108,6 +109,7 @@ if ($iscoursecalendar && !empty($courseid)) {
         get_string('calendar', 'calendar'),
         new moodle_url('/calendar/view.php', ['view' => 'month', 'category' => $categoryid])
     );
+    $PAGE->set_secondary_navigation(false);
 } else {
     $PAGE->set_context(context_system::instance());
 }
@@ -147,7 +149,7 @@ $calendar->add_sidecalendar_blocks($renderer, true, $view);
 
 echo $OUTPUT->header();
 echo $renderer->start_layout();
-echo html_writer::start_tag('div', array('class'=>'heightcontainer'));
+echo html_writer::start_tag('div', ['class' => 'heightcontainer', 'data-calendar-type' => 'main-block']);
 
 
 

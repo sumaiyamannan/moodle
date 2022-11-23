@@ -1094,6 +1094,7 @@ $capabilities = array(
         'clonepermissionsfrom' => 'moodle/course:update'
     ),
 
+    // Ability to set a forced language for a course or activity.
     'moodle/course:setforcedlanguage' => array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_COURSE,
@@ -2650,6 +2651,14 @@ $capabilities = array(
     // Allow users to create/edit all custom reports.
     'moodle/reportbuilder:editall' => [
         'captype' => 'write',
+        'riskbitmap' => RISK_PERSONAL,
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [],
+    ],
+
+    // Allow users to schedule reports as other users.
+    'moodle/reportbuilder:scheduleviewas' => [
+        'captype' => 'read',
         'riskbitmap' => RISK_PERSONAL,
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [],

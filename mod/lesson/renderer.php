@@ -52,44 +52,25 @@ class mod_lesson_renderer extends plugin_renderer_base {
         // Header setup.
         $this->page->set_title($title);
         $this->page->set_heading($this->page->course->fullname);
-        lesson_add_header_buttons($cm, $context, $extraeditbuttons, $lessonpageid);
-        $output = $this->output->header();
 
-        $cminfo = cm_info::create($cm);
-        $completiondetails = \core_completion\cm_completion_details::get_instance($cminfo, $USER->id);
-        $activitydates = \core\activity_dates::get_dates_for_module($cminfo, $USER->id);
-        if (has_capability('mod/lesson:manage', $context)) {
-            $activitypage = new moodle_url('/mod/' . $this->page->activityname . '/view.php');
-            $setactive = $activitypage->compare($this->page->url, URL_MATCH_BASE);
-            if ($setactive) {
-                if (!$this->page->has_secondary_navigation()) {
-                    $output .= $this->output->heading_with_help($activityname, 'overview', 'lesson');
-                }
-                $output .= $this->output->activity_information($cminfo, $completiondetails, $activitydates);
-            }
-
-            // Info box.
-            if ($lesson->intro) {
-                $output .= $this->output->box(format_module_intro('lesson', $lesson, $cm->id), 'generalbox', 'intro');
-            }
-
-            if (!empty($currenttab) && !$this->page->has_secondary_navigation()) {
-                ob_start();
-                include($CFG->dirroot.'/mod/lesson/tabs.php');
-                $output .= ob_get_contents();
-                ob_end_clean();
-            }
-        } else {
-            if (!$this->page->has_secondary_navigation()) {
-                $output .= $this->output->heading($activityname);
-            }
-            $output .= $this->output->activity_information($cminfo, $completiondetails, $activitydates);
-
-            // Info box.
-            if ($lesson->intro) {
-                $output .= $this->output->box(format_module_intro('lesson', $lesson, $cm->id), 'generalbox', 'intro');
-            }
+        $canmanage = has_capability('mod/lesson:manage', $context);
+        $activityheader = $this->page->activityheader;
+        $activitypage = new moodle_url('/mod/' . $this->page->activityname . '/view.php');
+        $setactive = $activitypage->compare($this->page->url, URL_MATCH_BASE);
+        if ($activityheader->is_title_allowed()) {
+            $title = $canmanage && $setactive ?
+                        $this->output->heading_with_help($activityname, 'overview', 'lesson') :
+                        $activityname;
+            $activityheader->set_title($title);
         }
+
+        // If we have the capability to manage the lesson but not within the view page,
+        // there's no reason to show activity/completion information.
+        if ($canmanage && !$setactive) {
+            $activityheader->set_hidecompletion(true);
+        }
+
+        $output = $this->output->header();
 
         foreach ($lesson->messages as $message) {
             $output .= $this->output->notification($message[0], $message[1], $message[2]);
@@ -613,6 +594,9 @@ class mod_lesson_renderer extends plugin_renderer_base {
 
         if ($data->yourcurrentgradeisoutof !== false) {
             $output .= $this->paragraph(get_string("yourcurrentgradeisoutof", "lesson", $data->yourcurrentgradeisoutof), 'center');
+        }
+        if ($data->yourcurrentgradeis !== false) {
+            $output .= $this->paragraph(get_string("yourcurrentgradeis", "lesson", $data->yourcurrentgradeis), 'center');
         }
         if ($data->eolstudentoutoftimenoanswers !== false) {
             $output .= $this->paragraph(get_string("eolstudentoutoftimenoanswers", "lesson"));

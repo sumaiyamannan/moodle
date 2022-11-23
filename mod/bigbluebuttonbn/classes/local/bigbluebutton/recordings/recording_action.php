@@ -18,6 +18,7 @@ namespace mod_bigbluebuttonbn\local\bigbluebutton\recordings;
 
 use mod_bigbluebuttonbn\instance;
 use mod_bigbluebuttonbn\recording;
+use mod_bigbluebuttonbn\local\config;
 
 /**
  * Collection of helper methods for handling recordings actions in Moodle.
@@ -35,7 +36,7 @@ class recording_action {
      * @param recording $recording
      * @param instance $targetinstance
      */
-    public static function import(recording $recording, instance $targetinstance) {
+    public static function import(recording $recording, instance $targetinstance): void {
         $recording->create_imported_recording($targetinstance);
     }
 
@@ -44,7 +45,7 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function delete(recording $recording) {
+    public static function delete(recording $recording): void {
         // As the recordingid was not identified as imported recording link, execute delete on a real recording.
         // Step 1, delete imported links associated to the recording.
         $recordingstodelete = recording::get_records(['recordingid' => $recording->get('recordingid'),
@@ -60,7 +61,7 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function edit(recording $recording) {
+    public static function edit(recording $recording): void {
         $recording->update();
     }
 
@@ -69,11 +70,13 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function unprotect(recording $recording) {
+    public static function unprotect(recording $recording): void {
+        if (!(boolean) config::get('recording_protect_editable')) {
+            // Recording protect action through UI is disabled, there is no need to do anything else.
+            throw new \moodle_exception('cannotperformaction', 'mod_bigblubuebuttobn', '', 'unprotect');
+        }
         if ($recording->get('imported')) {
-            /* Since the recording link is the one fetched from the BBB server, imported recordings can not be
-             * unprotected. There is no need to do anything else.
-             */
+            // Imported recordings can not be unprotected. There is no need to do anything else.
             throw new \moodle_exception('cannotperformaction', 'mod_bigblubuebuttobn', '', 'unprotect');
         }
         $recording->set('protected', false);
@@ -85,11 +88,13 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function protect(recording $recording) {
+    public static function protect(recording $recording): void {
+        if (!(boolean) config::get('recording_protect_editable')) {
+            // Recording protect action through UI is disabled, there is no need to do anything else.
+            throw new \moodle_exception('cannotperformaction', 'mod_bigblubuebuttobn', '', 'protect');
+        }
         if ($recording->get('imported')) {
-            /* Since the recording link is the one fetched from the BBB server, imported recordings can not be
-             * protected. There is no need to do anything else.
-             */
+            // Imported recordings can not be unprotected. There is no need to do anything else.
             throw new \moodle_exception('cannotperformaction', 'mod_bigblubuebuttobn', '', 'protect');
         }
         $recording->set('protected', true);
@@ -101,7 +106,7 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function unpublish(recording $recording) {
+    public static function unpublish(recording $recording): void {
         if ($recording->get('imported')) {
             /* Since the recording link is the one fetched from the BBB server, imported recordings can not be
              * unpublished. There is no need to do anything else.
@@ -117,7 +122,7 @@ class recording_action {
      *
      * @param recording $recording
      */
-    public static function publish(recording $recording) {
+    public static function publish(recording $recording): void {
         if ($recording->get('imported')) {
             /* Since the recording link is the one fetched from the BBB server, imported recordings can not be
              * unpublished. There is no need to do anything else.

@@ -54,13 +54,14 @@ if ($pageid !== null) {
 }
 $PAGE->set_url($url);
 $PAGE->force_settings_menu();
+$PAGE->add_body_class('limitedwidth');
 
 $context = $lesson->context;
 $canmanage = $lesson->can_manage();
 
 $lessonoutput = $PAGE->get_renderer('mod_lesson');
 
-$editbuttons = new \mod_lesson\output\edit_action_buttons($id, $canmanage);
+$editbuttons = new \mod_lesson\output\edit_action_buttons($lesson);
 
 $reviewmode = $lesson->is_in_review_mode();
 
@@ -237,6 +238,7 @@ if ($pageid != LESSON_EOL) {
 
     lesson_add_fake_blocks($PAGE, $cm, $lesson, $timer);
     echo $lessonoutput->header($lesson, $cm, $currenttab, $extraeditbuttons, $lessonpageid, $extrapagetitle);
+    $editbuttons->set_currentpage($lessonpageid);
     echo $lessonoutput->render($editbuttons);
 
     if ($attemptflag) {
@@ -265,6 +267,7 @@ if ($pageid != LESSON_EOL) {
 
     lesson_add_fake_blocks($PAGE, $cm, $lesson, $timer);
     echo $lessonoutput->header($lesson, $cm, $currenttab, $extraeditbuttons, $lessonpageid, get_string("congratulations", "lesson"));
+    $editbuttons->set_currentpage($lessonpageid);
     echo $lessonoutput->render($editbuttons);
     echo $lessoncontent;
     echo $lessonoutput->footer();

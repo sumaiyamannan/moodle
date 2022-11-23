@@ -24,13 +24,14 @@
 "use strict";
 
 import $ from 'jquery';
+import CustomEvents from 'core/custom_interaction_events';
 import {dispatchEvent} from 'core/event_dispatcher';
 import 'core/inplace_editable';
 import Notification from 'core/notification';
 import Pending from 'core/pending';
 import {prefetchStrings} from 'core/prefetch';
 import SortableList from 'core/sortable_list';
-import {get_string as getString, get_strings as getStrings} from 'core/str';
+import {get_string as getString} from 'core/str';
 import Templates from 'core/templates';
 import {add as addToast} from 'core/toast';
 import DynamicForm from 'core_form/dynamicform';
@@ -52,10 +53,13 @@ const reloadSettingsConditionsRegion = (reportElement, templateContext) => {
     return Templates.renderForPromise('core_reportbuilder/local/settings/conditions', {conditions: templateContext})
         .then(({html, js}) => {
             Templates.replaceNode(settingsConditionsRegion, html, js + templateContext.javascript);
+
+            initConditionsForm();
+
             // Re-focus the add condition element after reloading the region.
             const reportAddCondition = reportElement.querySelector(reportSelectors.actions.reportAddCondition);
             reportAddCondition?.focus();
-            initConditionsForm(reportElement);
+
             return pendingPromise.resolve();
         });
 };
@@ -64,6 +68,8 @@ const reloadSettingsConditionsRegion = (reportElement, templateContext) => {
  * Initialise conditions form, must be called on each init because the form container is re-created when switching editor modes
  */
 const initConditionsForm = () => {
+    CustomEvents.define(reportSelectors.actions.reportAddCondition, [CustomEvents.events.accessibleChange]);
+
     // Handle dynamic conditions form.
     const reportElement = document.querySelector(reportSelectors.regions.report);
     const conditionFormContainer = reportElement.querySelector(reportSelectors.regions.settingsConditions);
@@ -88,26 +94,25 @@ const initConditionsForm = () => {
     conditionForm.addEventListener(conditionForm.events.NOSUBMIT_BUTTON_PRESSED, event => {
         event.preventDefault();
 
-        getStrings([
-            {key: 'resetconditions', component: 'core_reportbuilder'},
-            {key: 'resetconditionsconfirm', component: 'core_reportbuilder'},
-            {key: 'resetall', component: 'core_reportbuilder'},
-        ]).then(([confirmTitle, confirmText, confirmButton]) => {
-            Notification.confirm(confirmTitle, confirmText, confirmButton, null, () => {
-                const pendingPromise = new Pending('core_reportbuilder/conditions:reset');
+        Notification.saveCancelPromise(
+            getString('resetconditions', 'core_reportbuilder'),
+            getString('resetconditionsconfirm', 'core_reportbuilder'),
+            getString('resetall', 'core_reportbuilder'),
+            {triggerElement: event.detail}
+        ).then(() => {
+            const pendingPromise = new Pending('core_reportbuilder/conditions:reset');
 
-                resetConditions(reportElement.dataset.reportId)
-                    .then(data => reloadSettingsConditionsRegion(reportElement, data))
-                    .then(() => getString('conditionsreset', 'core_reportbuilder'))
-                    .then(addToast)
-                    .then(() => {
-                        dispatchEvent(reportEvents.tableReload, {}, reportElement);
-                        return pendingPromise.resolve();
-                    })
-                    .catch(Notification.exception);
-            });
+            return resetConditions(reportElement.dataset.reportId)
+                .then(data => reloadSettingsConditionsRegion(reportElement, data))
+                .then(() => addToast(getString('conditionsreset', 'core_reportbuilder')))
+                .then(() => {
+                    dispatchEvent(reportEvents.tableReload, {}, reportElement);
+                    return pendingPromise.resolve();
+                })
+                .catch(Notification.exception);
+        }).catch(() => {
             return;
-        }).catch(Notification.exception);
+        });
     });
 };
 
@@ -139,20 +144,18 @@ export const init = initialized => {
         return;
     }
 
-    document.addEventListener('click', event => {
-
-        // Add condition to report.
+    // Add condition to report. Use custom events helper to ensure consistency across platforms.
+    $(document).on(CustomEvents.events.accessibleChange, reportSelectors.actions.reportAddCondition, event => {
         const reportAddCondition = event.target.closest(reportSelectors.actions.reportAddCondition);
         if (reportAddCondition) {
             event.preventDefault();
 
-            const reportElement = reportAddCondition.closest(reportSelectors.regions.report);
-
             // Check if dropdown is closed with no condition selected.
-            if (reportAddCondition.value === '0') {
+            if (reportAddCondition.selectedIndex === 0) {
                 return;
             }
 
+            const reportElement = reportAddCondition.closest(reportSelectors.regions.report);
             const pendingPromise = new Pending('core_reportbuilder/conditions:add');
 
             addCondition(reportElement.dataset.reportId, reportAddCondition.value)
@@ -166,6 +169,9 @@ export const init = initialized => {
                 })
                 .catch(Notification.exception);
         }
+    });
+
+    document.addEventListener('click', event => {
 
         // Remove condition from report.
         const reportRemoveCondition = event.target.closest(reportSelectors.actions.reportRemoveCondition);
@@ -176,26 +182,25 @@ export const init = initialized => {
             const conditionContainer = reportRemoveCondition.closest(reportSelectors.regions.activeCondition);
             const conditionName = conditionContainer.dataset.conditionName;
 
-            getStrings([
-                {key: 'deletecondition', component: 'core_reportbuilder', param: conditionName},
-                {key: 'deleteconditionconfirm', component: 'core_reportbuilder', param: conditionName},
-                {key: 'delete', component: 'core'},
-            ]).then(([confirmTitle, confirmText, confirmButton]) => {
-                Notification.confirm(confirmTitle, confirmText, confirmButton, null, () => {
-                    const pendingPromise = new Pending('core_reportbuilder/conditions:remove');
+            Notification.saveCancelPromise(
+                getString('deletecondition', 'core_reportbuilder', conditionName),
+                getString('deleteconditionconfirm', 'core_reportbuilder', conditionName),
+                getString('delete', 'core'),
+                {triggerElement: reportRemoveCondition}
+            ).then(() => {
+                const pendingPromise = new Pending('core_reportbuilder/conditions:remove');
 
-                    deleteCondition(reportElement.dataset.reportId, conditionContainer.dataset.conditionId)
-                        .then(data => reloadSettingsConditionsRegion(reportElement, data))
-                        .then(() => getString('conditiondeleted', 'core_reportbuilder', conditionName))
-                        .then(addToast)
-                        .then(() => {
-                            dispatchEvent(reportEvents.tableReload, {}, reportElement);
-                            return pendingPromise.resolve();
-                        })
-                        .catch(Notification.exception);
-                });
+                return deleteCondition(reportElement.dataset.reportId, conditionContainer.dataset.conditionId)
+                    .then(data => reloadSettingsConditionsRegion(reportElement, data))
+                    .then(() => addToast(getString('conditiondeleted', 'core_reportbuilder', conditionName)))
+                    .then(() => {
+                        dispatchEvent(reportEvents.tableReload, {}, reportElement);
+                        return pendingPromise.resolve();
+                    })
+                    .catch(Notification.exception);
+            }).catch(() => {
                 return;
-            }).catch(Notification.exception);
+            });
         }
     });
 

@@ -4,6 +4,8 @@ Feature: Teachers can embed images into instructions and conclusion fields
   As a teacher
   I need to be able to embed images into the fields and they should display correctly
 
+  # This scenario has Atto-specific steps. See MDL-75913 for further details.
+  @editor_atto
   Scenario: Embedding the image into the instructions and conclusions fields
     Given the following "users" exist:
       | username | firstname | lastname | email                |
@@ -14,6 +16,9 @@ Feature: Teachers can embed images into instructions and conclusion fields
     And the following "course enrolments" exist:
       | user     | course | role           |
       | teacher1 | C1     | editingteacher |
+    And the following "blocks" exist:
+      | blockname     | contextlevel | reference | pagetypepattern | defaultregion |
+      | private_files | System       | 1         | my-index        | side-post     |
     And I log in as "teacher1"
     # Upload an image into the private files.
     And I follow "Manage private files"
