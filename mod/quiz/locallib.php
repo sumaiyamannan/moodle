@@ -1526,6 +1526,7 @@ function quiz_attempt_state($quiz, $attempt) {
  * @return display_options
  */
 function quiz_get_review_options($quiz, $attempt, $context) {
+    global $USER;
     $options = display_options::make_from_quiz($quiz, quiz_attempt_state($quiz, $attempt));
 
     $options->readonly = true;
@@ -1561,6 +1562,12 @@ function quiz_get_review_options($quiz, $attempt, $context) {
         $options->responsehistory = question_display_options::VISIBLE;
         $options->userinfoinhistory = $attempt->userid;
 
+    }
+
+    // Check that this attempt belongs to this user.
+    // Check that response history is enabled for this review option.
+    if ($attempt->userid == $USER->id && $options->responsehistory == 1) {
+        $options->history = 1;
     }
 
     return $options;

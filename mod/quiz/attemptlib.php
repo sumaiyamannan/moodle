@@ -1153,7 +1153,6 @@ class quiz_attempt {
      * @return question_display_options the render options for this user on this attempt.
      */
     public function get_display_options($reviewing) {
-        global $USER;
         if ($reviewing) {
             if (is_null($this->reviewoptions)) {
                 $this->reviewoptions = quiz_get_review_options($this->get_quiz(),
@@ -1162,11 +1161,6 @@ class quiz_attempt {
                     // It should  always be possible for a teacher to review their
                     // own preview irrespective of the review options settings.
                     $this->reviewoptions->attempt = true;
-                }
-                // Check that this attempt belongs to this user.
-                // Check that response history is enabled for this review option.
-                if ($this->attempt->userid == $USER->id && $this->reviewoptions->responsehistory == 1) {
-                    $this->reviewoptions->history = 1;
                 }
             }
             return $this->reviewoptions;
