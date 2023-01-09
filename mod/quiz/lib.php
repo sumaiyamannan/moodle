@@ -29,10 +29,13 @@
 defined('MOODLE_INTERNAL') || die();
 
 use mod_quiz\question\bank\custom_view;
+use mod_quiz\question\display_options;
+use mod_quiz\question\qubaids_for_quiz;
+use mod_quiz\question\qubaids_for_users_attempts;
 use core_question\statistics\questions\all_calculated_for_qubaid_condition;
 
 require_once($CFG->dirroot . '/calendar/lib.php');
-
+require_once($CFG->dirroot . '/mod/quiz/attemptlib.php');
 
 /**#@+
  * Option controlling what options are offered on the quiz settings form.
@@ -414,7 +417,8 @@ function quiz_delete_all_attempts($quiz) {
 function quiz_delete_user_attempts($quiz, $user) {
     global $CFG, $DB;
     require_once($CFG->dirroot . '/mod/quiz/locallib.php');
-    question_engine::delete_questions_usage_by_activities(new qubaids_for_quiz_user($quiz->get_quizid(), $user->id));
+    question_engine::delete_questions_usage_by_activities(new qubaids_for_users_attempts(
+            $quiz->get_quizid(), $user->id, 'all'));
     $params = [
         'quiz' => $quiz->get_quizid(),
         'userid' => $user->id,
@@ -759,10 +763,10 @@ function quiz_grade_item_update($quiz, $grades = null) {
     // 2. If the quiz is set to not show grades at either of those times,
     //    create the grade_item as hidden.
     // 3. If the quiz is set to show grades, create the grade_item visible.
-    $openreviewoptions = mod_quiz_display_options::make_from_quiz($quiz,
-            mod_quiz_display_options::LATER_WHILE_OPEN);
-    $closedreviewoptions = mod_quiz_display_options::make_from_quiz($quiz,
-            mod_quiz_display_options::AFTER_CLOSE);
+    $openreviewoptions = display_options::make_from_quiz($quiz,
+            display_options::LATER_WHILE_OPEN);
+    $closedreviewoptions = display_options::make_from_quiz($quiz,
+            display_options::AFTER_CLOSE);
     if ($openreviewoptions->marks < question_display_options::MARK_AND_MAX &&
             $closedreviewoptions->marks < question_display_options::MARK_AND_MAX) {
         $params['hidden'] = 1;
@@ -1116,8 +1120,8 @@ function quiz_process_options($quiz) {
     $quiz->reviewrightanswer = quiz_review_option_form_to_db($quiz, 'rightanswer');
     $quiz->reviewoverallfeedback = quiz_review_option_form_to_db($quiz, 'overallfeedback');
     $quiz->reviewresponsehistory = quiz_review_option_form_to_db($quiz, 'responsehistory');
-    $quiz->reviewattempt |= mod_quiz_display_options::DURING;
-    $quiz->reviewoverallfeedback &= ~mod_quiz_display_options::DURING;
+    $quiz->reviewattempt |= display_options::DURING;
+    $quiz->reviewoverallfeedback &= ~display_options::DURING;
 
     // Ensure that disabled checkboxes in completion settings are set to 0.
     // But only if the completion settinsg are unlocked.
@@ -1141,10 +1145,10 @@ function quiz_process_options($quiz) {
  */
 function quiz_review_option_form_to_db($fromform, $field) {
     static $times = array(
-        'during' => mod_quiz_display_options::DURING,
-        'immediately' => mod_quiz_display_options::IMMEDIATELY_AFTER,
-        'open' => mod_quiz_display_options::LATER_WHILE_OPEN,
-        'closed' => mod_quiz_display_options::AFTER_CLOSE,
+        'during' => display_options::DURING,
+        'immediately' => display_options::IMMEDIATELY_AFTER,
+        'open' => display_options::LATER_WHILE_OPEN,
+        'closed' => display_options::AFTER_CLOSE,
     );
 
     $review = 0;
@@ -1157,6 +1161,46 @@ function quiz_review_option_form_to_db($fromform, $field) {
     }
 
     return $review;
+}
+
+/**
+ * In place editable callback for slot displaynumber.
+ *
+ * @param string $itemtype slotdisplarnumber
+ * @param int $itemid the id of the slot in the quiz_slots table
+ * @param string $newvalue the new value for displaynumber field for a given slot in the quiz_slots table
+ * @return \core\output\inplace_editable|void
+ */
+function mod_quiz_inplace_editable(string $itemtype, int $itemid, string $newvalue): \core\output\inplace_editable {
+    if ($itemtype === 'slotdisplaynumber') {
+        global $DB;
+        $record = $DB->get_record('quiz_slots', ['id' => $itemid], '*', MUST_EXIST);
+        $quiz = $DB->get_record('quiz', array('id' => $record->quizid), '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('quiz', $quiz->id, $quiz->course);
+        $course = $DB->get_record('course', array('id' => $quiz->course), '*', MUST_EXIST);
+
+        // Call validate_context for course module to check access and set current context.
+        $context = context_module::instance($cm->id);
+        \external_api::validate_context($context);
+
+        // Check permission of the user to update this item (customise question number).
+        require_capability('mod/quiz:manage', $context);
+
+        $quizobj = new quiz($quiz, $cm, $course);
+        $structure = $quizobj->get_structure();
+        $warning = false;
+        // Clean input and update the record.
+        $record->displaynumber = s(clean_param($newvalue, PARAM_RAW));
+
+        // Truncate the string if the input string exceeds the size of the displaynumber field (16 chars) in the database.
+        if (strlen($record->displaynumber) > 16) {
+            $record->displaynumber = substr($record->displaynumber, 0, 16);
+        }
+        $structure->update_slot_display_number($itemid, $record->displaynumber);
+
+        // Prepare the element for the output.
+        return $structure->make_slot_display_number_in_place_editable($itemid, $context);
+    }
 }
 
 /**

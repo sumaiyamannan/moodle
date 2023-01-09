@@ -194,8 +194,8 @@ class mod_quiz_external extends external_api {
                                                                             (-1 means use decimalpoints.)', VALUE_OPTIONAL),
                             'reviewattempt' => new external_value(PARAM_INT, 'Whether users are allowed to review their quiz
                                                                     attempts at various times. This is a bit field, decoded by the
-                                                                    mod_quiz_display_options class. It is formed by ORing together
-                                                                    the constants defined there.', VALUE_OPTIONAL),
+                                                                    \mod_quiz\question\display_options class. It is formed by ORing
+                                                                    together the constants defined there.', VALUE_OPTIONAL),
                             'reviewcorrectness' => new external_value(PARAM_INT, 'Whether users are allowed to review their quiz
                                                                         attempts at various times.
                                                                         A bit field, like reviewattempt.', VALUE_OPTIONAL),
@@ -1053,6 +1053,7 @@ class mod_quiz_external extends external_api {
      * @throws moodle_quiz_exceptions
      */
     public static function get_attempt_data($attemptid, $page, $preflightdata = array()) {
+        global $PAGE;
 
         $warnings = array();
 
@@ -1070,6 +1071,10 @@ class mod_quiz_external extends external_api {
         } else {
             $nextpage = $params['page'] + 1;
         }
+
+        // TODO: Remove the code once the long-term solution (MDL-76728) has been applied.
+        // Set a default URL to stop the debugging output.
+        $PAGE->set_url('/fake/url');
 
         $result = array();
         $result['attempt'] = $attemptobj->get_attempt();
