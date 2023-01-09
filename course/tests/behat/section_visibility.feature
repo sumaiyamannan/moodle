@@ -81,26 +81,56 @@ Feature: Show/hide course sections
 
   @javascript
   Scenario: Students can not navigate to restricted sections
+  # Depending on the setting, the content can be partially visible but it is not accessible.
     Given the following "activities" exist:
       | activity | course | section | name       | completion |
-      | label    | C1     | 1       | Test label | 1          |
-    And I edit the section "2"
+      | label    | C1     | 4       | Test label | 1          |
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I edit the section "4"
     And I expand all fieldsets
     And I click on "Add restriction..." "button"
     And I click on "Activity completion" "button" in the "Add restriction..." "dialogue"
     And I set the following fields to these values:
       | cm | Test label |
       | Required completion status | must be marked complete |
+    # By default the activity restriction has "Displayed if student doesn't meet this condition" setting enabled
     And I press "Save changes"
-    When I click on "Section 1" "link" in the "region-main" "region"
-    Then I should see "Section 2" in the "region-main" "region"
-    And I click on "Section 2" "link" in the "region-main" "region"
-    And I should see "Section 1" in the "region-main" "region"
-    And I should see "Section 3" in the "region-main" "region"
+    And I log out
     And I am on the "Course 1" course page logged in as student1
-    And I click on "Section 1" "link" in the "region-main" "region"
-    And I should not see "Section 2" in the "region-main" "region"
-    And I should see "Section 3" in the "region-main" "region"
-    And I click on "Section 3" "link" in the "region-main" "region"
-    And I should not see "Section 2" in the "region-main" "region"
-    And I should see "Section 1" in the "region-main" "region"
+    Then I should see "Section 4" in the "region-main" "region"
+    And I should see "Not available unless: The activity Test label is marked complete" in the "region-main" "region"
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I hide section "4"
+    Then I should see "Section 4" in the "region-main" "region"
+    And I should not see "Not available unless: The activity Test label is marked complete" in the "region-main" "region"
+
+  @javascript
+  Scenario: Students cannot see restricted sections regardless if a section is hidden or shown
+    Given the following "activities" exist:
+      | activity | course | section | name       | completion |
+      | label    | C1     | 4       | Test label | 1          |
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I edit the section "4"
+    And I expand all fieldsets
+    And I click on "Add restriction..." "button"
+    And I click on "Activity completion" "button" in the "Add restriction..." "dialogue"
+    And I set the following fields to these values:
+      | cm | Test label |
+      | Required completion status | must be marked complete |
+    # Change the activity restriction setting to "Hidden entirely if student doesn't meet this condition" setting
+    And I click on ".availability-item .availability-eye[title$=' Click to hide']" "css_element"
+    And I press "Save changes"
+    And I log out
+    When I am on the "Course 1" course page logged in as student1
+    Then I should not see "Section 4" in the "region-main" "region"
+    And I should not see "Test label" in the "region-main" "region"
+    And I log in as "teacher1"
+    And I am on "Course 1" course homepage with editing mode on
+    And I hide section "4"
+    And I log out
+    When I am on the "Course 1" course page logged in as student1
+    Then I should not see "Section 4" in the "region-main" "region"
+    And I should not see "Test label" in the "region-main" "region"
