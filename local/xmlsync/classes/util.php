@@ -26,7 +26,7 @@
 namespace local_xmlsync;
 
 use moodle_exception;
-
+require_once($CFG->dirroot . '/backup/util/helper/copy_helper.class.php');
 defined('MOODLE_INTERNAL') || die();
 
 class util {
@@ -137,7 +137,6 @@ class util {
 
 
                $roles = explode(',', get_config('local_xmlsync', 'roles_to_keep'));
-               
                 // Make a fake course copy form.
                 $dummyform = array(
                     'courseid' => $templatecourse->id,  // Copying from here.
@@ -156,12 +155,13 @@ class util {
                     //As the copy API code uses the value in the kept roles list
                     $dummyform['role_'.$role] = $role;
                 }
-               
                 // Cast to stdClass object.
                 $mdata = (object) $dummyform;
 
-                $backupcopy = new \core_backup\copy\copy($mdata);
-                $matchingrecord->copy_task_controllers = json_encode($backupcopy->create_copy(False));
+                $backupcopy = new \copy_helper();
+                $pdata = $backupcopy->process_formdata($mdata);
+                $matchingrecord->copy_task_controllers = json_encode($backupcopy->create_copy($pdata));
+
                 $DB->update_record('local_xmlsync_crsimport', $matchingrecord);
                 return True;
             }
