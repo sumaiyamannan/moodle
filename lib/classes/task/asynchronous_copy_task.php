@@ -53,6 +53,7 @@ class asynchronous_copy_task extends adhoc_task {
 
         $backupid = $this->get_custom_data()->backupid;
         $restoreid = $this->get_custom_data()->restoreid;
+        $clone_creation_date = $this->get_custom_data()->clone_creation_date;
         $backuprecord = $DB->get_record('backup_controllers', array('backupid' => $backupid), 'id, itemid', MUST_EXIST);
         $restorerecord = $DB->get_record('backup_controllers', array('backupid' => $restoreid), 'id, itemid', MUST_EXIST);
 
@@ -189,6 +190,10 @@ class asynchronous_copy_task extends adhoc_task {
         $course->idnumber = $copyinfo->idnumber;
         $course->enddate = $copyinfo->enddate;
 
+        if($clone_creation_date == False) {
+            $course->timemodified = time();
+            $course->timecreated = time();
+        }
         $DB->update_record('course', $course);
 
         // Send message to user if enabled.
