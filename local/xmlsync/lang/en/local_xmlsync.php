@@ -78,3 +78,4 @@ $string['error:unknownaction'] = 'Unknown action in import file: \'{$a}\'';
 
 $string['warning:timestampmatch'] = 'Timestamp exactly matches previously imported file. Importing skipped.';
 $string['warning:dryrun'] = 'Dry run: no table name specified.';
+$string['privacy:metadata'] = 'The xmlsync plugin does not store any personal data.';
