@@ -263,6 +263,7 @@ class core_backup_external extends external_api {
                             'backupid' => new external_value(PARAM_ALPHANUM, 'Backup id'),
                             'restoreid' => new external_value(PARAM_ALPHANUM, 'Restore id'),
                             'operation' => new external_value(PARAM_ALPHANUM, 'Operation type'),
+                            'clone_creation_date' => new external_value(PARAM_INT, 'clone creation date'),
                         ), 'Copy data'
                     ), 'Copy data'
                 ),
