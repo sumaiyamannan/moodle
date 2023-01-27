@@ -484,4 +484,55 @@ class assign_feedback_editpdf extends assign_feedback_plugin {
     public function get_config_for_external() {
         return (array) $this->get_config();
     }
+
+    /**
+     * Returns true if the plugin returns feedback files
+     * and has existing feedback.
+     *
+     * @return boolean
+     */
+    public function return_files() {
+        global $DB;
+        // Check the total number of editpdf feedback.
+        $sql = 'SELECT COUNT(DISTINCT f.gradeid) FROM {assignfeedback_editpdf_annot} f
+        JOIN {assign_grades} g ON f.gradeid = g.id
+        WHERE assignment = :assignid';
+        $params = ['assignid' => $this->assignment->get_instance()->id];
+        $totalfeedback = $DB->count_records_sql($sql, $params);
+        if ($totalfeedback > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    /**
+     * Produce a list of files suitable for export that represent this feedback
+     *
+     * @param stdClass $grade The grade
+     * @param stdClass $student unused
+     * @return array - return an array of files indexed by filename
+     */
+    public function get_files(stdClass $grade, stdClass $student) {
+        $result = array();
+        $fs = get_file_storage();
+
+        $files = $fs->get_area_files($this->assignment->get_context()->id,
+            'assignfeedback_editpdf',
+            document_services::FINAL_PDF_FILEAREA,
+            $grade->id,
+            'timemodified',
+            false);
+
+        foreach ($files as $file) {
+            // Do we return the full folder path or just the file name?
+            if (isset($grade->exportfullpath) && !$grade->exportfullpath) {
+                $result[$file->get_filename()] = $file;
+            } else {
+                $result[$file->get_filepath().$file->get_filename()] = $file;
+            }
+        }
+        return $result;
+    }
 }

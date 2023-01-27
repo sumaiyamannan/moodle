@@ -50,6 +50,8 @@ class grading_actionmenu implements templatable, renderable {
     protected assign $assign;
     /** @var bool If there are submissions to download. */
     protected bool $showdownload;
+    /** @var bool If any enabled feedback plugins returning files. */
+    protected bool $showfeedback;
 
     /**
      * Constructor for this object.
@@ -72,6 +74,7 @@ class grading_actionmenu implements templatable, renderable {
         }
         $this->assign = $assign;
         $this->showdownload = $this->assign->is_any_submission_plugin_enabled() && $this->assign->count_submissions();
+        $this->showfeedback = $this->assign->is_enabled_feedback_plugin_returning_files();
     }
 
     /**
@@ -245,6 +248,13 @@ class grading_actionmenu implements templatable, renderable {
                 'action' => 'downloadall',
             ]);
             $actions['downloadall'][get_string('downloadall', 'mod_assign')] = $url->out(false);
+        }
+        if ($this->showfeedback) {
+            $url = new moodle_url('/mod/assign/view.php', [
+                'id' => $this->assign->get_course_module()->id,
+                'action' => 'downloadallfeedback',
+            ]);
+            $actions['downloadallfeedback'][get_string('downloadallfeedback', 'mod_assign')] = $url->out(false);
         }
 
         return $actions;

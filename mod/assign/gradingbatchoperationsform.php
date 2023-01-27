@@ -53,6 +53,7 @@ class mod_assign_grading_batch_operations_form extends moodleform {
             $options['message'] = get_string('messageselectadd');
         }
         $options['downloadselected'] = get_string('downloadselectedsubmissions', 'assign');
+        $options['downloadselectedfeedback'] = get_string('downloadselectedfeedback', 'assign');
         if ($instance['submissiondrafts']) {
             $options['reverttodraft'] = get_string('reverttodraft', 'assign');
         }

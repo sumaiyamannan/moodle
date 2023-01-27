@@ -83,9 +83,10 @@ class downloader {
     /**
      * Load the filelist.
      *
+     * @param string $plugintype assign plugin type
      * @return bool true if there are some files to zip.
      */
-    public function load_filelist(): bool {
+    public function load_filelist(string $plugintype): bool {
         $manager = $this->manager;
         $groupid = $this->groupid;
 
@@ -111,24 +112,28 @@ class downloader {
 
         // Get all the files for each student.
         foreach ($students as $student) {
-            // Download all assigments submission or only selected users.
+            // Download all assigments submission/feedback or only selected users.
             if ($this->userids && !in_array($student->id, $this->userids)) {
                 continue;
             }
             if (!groups_is_member($groupid, $student->id) && $this->groupmode && $groupid) {
                 continue;
             }
-            $this->load_student_filelist($student);
+            if ($plugintype == 'submission') {
+                $this->load_student_filelist_submission($student, $plugintype);
+            } else if ($plugintype == 'feedback') {
+                $this->load_student_filelist_feedback($student, $plugintype);
+            }
         }
         return !empty($this->filesforzipping);
     }
 
     /**
-     * Load an individual student filelist.
+     * Load an individual student filelist submission.
      *
      * @param stdClass $student the user record
      */
-    private function load_student_filelist(stdClass $student) {
+    private function load_student_filelist_submission(stdClass $student) {
         $submission = $this->get_student_submission($student);
         if (!$submission) {
             return;
@@ -145,6 +150,32 @@ class downloader {
                 continue;
             }
             $this->load_submissionplugin_filelist($student, $plugin, $submission, $prefix);
+        }
+    }
+
+    /**
+     * Load an individual student filelist feedback.
+     *
+     * @param stdClass $student the user record
+     */
+    private function load_student_filelist_feedback(stdClass $student) {
+        $manager = $this->manager;
+        $grade = $manager->get_user_grade($student->id, false);
+        if (!$grade) {
+            return;
+        }
+        $prefix = $this->get_student_prefix($student);
+        if (isset($this->prefixes[$prefix])) {
+            // We already send that file (in group mode).
+            return;
+        }
+        $this->prefixes[$prefix] = $student->id;
+
+        foreach ($this->manager->get_feedback_plugins() as $plugin) {
+            if (!$plugin->is_enabled() || !$plugin->is_visible()) {
+                continue;
+            }
+            $this->load_feedbackplugin_filelist($student, $plugin, $grade, $prefix);
         }
     }
 
@@ -194,6 +225,55 @@ class downloader {
         $prefix = str_replace('_', ' ', $fullname);
         $prefix = clean_filename($prefix . '_' . $manager->get_uniqueid_for_user($student->id));
         return $prefix;
+    }
+
+    /**
+     * Load a feedback plugin filelist for a specific user.
+     *
+     * @param stdClass $student the user record
+     * @param assign_plugin $plugin the submission plugin instance
+     * @param stdClass $grade the grade object
+     * @param string $prefix the files prefix
+     */
+    private function load_feedbackplugin_filelist(
+        stdClass $student,
+        assign_plugin $plugin,
+        stdClass $grade,
+        string $prefix
+    ) {
+        $subtype = $plugin->get_subtype();
+        $type = $plugin->get_type();
+
+        if ($this->downloadasfolders) {
+            // Create a folder for each user for each assignment plugin.
+            // This is the default behavior for version of Moodle >= 3.1.
+            $grade->exportfullpath = true;
+            $pluginfiles = $plugin->get_files($grade, $student);
+            foreach ($pluginfiles as $zipfilepath => $file) {
+                $subtype = $plugin->get_subtype();
+                $type = $plugin->get_type();
+                $zipfilename = basename($zipfilepath);
+                $prefixedfilename = clean_filename($prefix . '_' . $subtype . '_' . $type. '_');
+                if ($type == 'file') {
+                    $pathfilename = $prefixedfilename . $file->get_filepath() . $zipfilename;
+                } else {
+                    $pathfilename = $prefixedfilename . '/' . $zipfilename;
+                }
+                $pathfilename = clean_param($pathfilename, PARAM_PATH);
+                $this->filesforzipping[$pathfilename] = $file;
+            }
+        } else {
+            // Create a single folder for all users of all assignment plugins.
+            // This was the default behavior for version of Moodle < 3.1.
+            $grade->exportfullpath = false;
+            $pluginfiles = $plugin->get_files($grade, $student);
+            foreach ($pluginfiles as $zipfilename => $file) {
+                $subtype = $plugin->get_subtype();
+                $type = $plugin->get_type();
+                $prefixedfilename = clean_filename($prefix . '_' . $subtype . '_' . $type . '_' . $zipfilename);
+                $this->filesforzipping[$prefixedfilename] = $file;
+            }
+        }
     }
 
     /**

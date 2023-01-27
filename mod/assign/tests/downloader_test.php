@@ -129,7 +129,7 @@ class downloader_test extends \advanced_testcase {
         }
         $manager = new assign($context, $cm, $course);
         $downloader = new downloader($manager, $filterusers);
-        $hasfiles = $downloader->load_filelist();
+        $hasfiles = $downloader->load_filelist('submission');
 
         // Expose protected filelist attribute.
         $rc = new \ReflectionClass(downloader::class);

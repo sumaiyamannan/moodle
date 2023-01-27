@@ -693,6 +693,8 @@ class assign {
             $o .= $this->view_grading_page();
         } else if ($action == 'downloadall') {
             $o .= $this->download_submissions();
+        } else if ($action == 'downloadallfeedback') {
+            $o .= $this->download_feedbacks();
         } else if ($action == 'submit') {
             $PAGE->add_body_class('limitedwidth');
             $o .= $this->check_submit_for_grading($mform);
@@ -3745,7 +3747,7 @@ class assign {
      */
     protected function download_submissions($userids = null) {
         $downloader = new downloader($this, $userids ?: null);
-        if ($downloader->load_filelist()) {
+        if ($downloader->load_filelist('submission')) {
             $downloader->download_zip();
         }
         // Show some notification if we have nothing to download.
@@ -3764,6 +3766,36 @@ class assign {
         $result .= $renderer->continue_button($url);
         $result .= $this->view_footer();
         return $result;
+    }
+
+    /**
+     * Download a zip file of all assignment feedback.
+     *
+     * @param array|null $userids Array of user ids to download assignment submissions in a zip file
+     * @return string - If an error occurs, this will contain the error page.
+     */
+    protected function download_feedbacks($userids = null) {
+        $downloader = new downloader($this, $userids ?: null);
+        if (!empty($downloader->load_filelist('feedback'))) {
+            $downloader->download_zip();
+        }
+        // Show some notification if we have nothing to download.
+        $cm = $this->get_course_module();
+        $renderer = $this->get_renderer();
+        $header = new assign_header(
+            $this->get_instance(),
+            $this->get_context(),
+            '',
+            $cm->id,
+            get_string('downloadallfeedback', 'mod_assign')
+        );
+        $result = $renderer->render($header);
+        $result .= $renderer->notification(get_string('nofeedback', 'mod_assign'));
+        $url = new moodle_url('/mod/assign/view.php', ['id' => $cm->id, 'action' => 'grading']);
+        $result .= $renderer->continue_button($url);
+        $result .= $this->view_footer();
+        echo $result;
+        exit();
     }
 
     /**
@@ -5091,6 +5123,8 @@ class assign {
 
             if ($data->operation == 'downloadselected') {
                 $this->download_submissions($userlist);
+            } else if ($data->operation == 'downloadselectedfeedback') {
+                $this->download_feedbacks($userlist);
             } else {
                 foreach ($userlist as $userid) {
                     if ($data->operation == 'lock') {
@@ -8163,6 +8197,24 @@ class assign {
 
         return $this->cache['any_feedback_plugin_enabled'];
 
+    }
+
+    /**
+     * Check if feedback plugins installed are returning files.
+     *
+     * @return bool
+     */
+    public function is_enabled_feedback_plugin_returning_files() {
+        if (!isset($this->cache['any_feedback_plugin_returning_files'])) {
+            $this->cache['any_feedback_plugin_returning_files'] = false;
+            foreach ($this->feedbackplugins as $plugin) {
+                if ($plugin->is_enabled() && $plugin->is_visible() && $plugin->return_files()) {
+                    $this->cache['any_feedback_plugin_returning_files'] = true;
+                    break;
+                }
+            }
+        }
+        return $this->cache['any_feedback_plugin_returning_files'];
     }
 
     /**
