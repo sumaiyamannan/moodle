@@ -104,7 +104,7 @@ class renderer extends \plugin_renderer_base {
         }
         $content = $node->content;
         $classes = $node->classes;
-        if (!empty($content)) {
+        if (isset($content) && $content != '') {
             if ($header) {
                 // There is some content to display below this make this a header.
                 $return = \html_writer::tag('dt', $header);
