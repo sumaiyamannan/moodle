@@ -18,7 +18,7 @@ declare(strict_types=1);
 
 namespace core_group\reportbuilder\local\entities;
 
-use core_reportbuilder\local\filters\date;
+use core_reportbuilder\local\filters\{date, text};
 use lang_string;
 use core_reportbuilder\local\entities\base;
 use core_reportbuilder\local\helpers\format;
@@ -116,7 +116,6 @@ class group_member extends base {
      */
     protected function get_all_filters(): array {
         $groupsmembersalias = $this->get_table_alias('groups_members');
-
         // Time added filter.
         $filters[] = (new filter(
             date::class,
@@ -124,9 +123,15 @@ class group_member extends base {
             new lang_string('timeadded', 'core_reportbuilder'),
             $this->get_entity_name(),
             "{$groupsmembersalias}.timeadded"
-        ))
-            ->add_joins($this->get_joins());
-
+        ))->add_joins($this->get_joins());
+        // Component filter.
+        $filters[] = (new filter(
+            text::class,
+            'component',
+            new lang_string('plugin', 'core'),
+            $this->get_entity_name(),
+            "{$groupsmembersalias}.component"
+        ))->add_joins($this->get_joins());
         return $filters;
     }
 }

@@ -315,6 +315,16 @@ final class groups_test extends core_reportbuilder_testcase {
                 'group_member:timeadded_to' => 1622502000,
             ], false],
 
+            // Component .
+            'Filter group member component' => ['group_member:component', [
+                'group_member:component_operator' => text::IS_EQUAL_TO,
+                'group_member:component_value' => 'enrol_cohort',
+            ], true],
+            'Filter group member component (no match)' => ['group_member:component', [
+                'group_member:component_operator' => text::IS_NOT_EQUAL_TO,
+                'group_member:component_value' => 'enrol_cohort',
+            ], false],
+
             // User (just to test join).
             'Filter user username' => ['user:username', [
                 'user:username_operator' => text::IS_EQUAL_TO,
@@ -341,17 +351,27 @@ final class groups_test extends core_reportbuilder_testcase {
         array $filtervalues,
         bool $expectmatch
     ): void {
+        global $CFG, $DB;
         $this->resetAfterTest();
 
+        $cohort = $this->getDataGenerator()->create_cohort();
         $course = $this->getDataGenerator()->create_course(['fullname' => 'Test course']);
-        $user = $this->getDataGenerator()->create_and_enrol($course, 'student', ['username' => 'testuser']);
+        $user = $this->getDataGenerator()->create_user(['username' => 'testuser']);
 
         $group = $this->getDataGenerator()->create_group(['courseid' => $course->id, 'idnumber' => 'G101', 'name' => 'Test group']);
-        $this->getDataGenerator()->create_group_member(['userid' => $user->id, 'groupid' => $group->id]);
 
         $grouping = $this->getDataGenerator()->create_grouping(['courseid' => $course->id, 'idnumber' => 'GR101',
             'name' => 'Test grouping']);
         $this->getDataGenerator()->create_grouping_group(['groupingid' => $grouping->id, 'groupid' => $group->id]);
+
+        $pluginname = 'cohort';
+        $CFG->enrol_plugins_enabled = $pluginname;
+        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
+        $plugin = enrol_get_plugin($pluginname);
+        $plugin->add_instance($course, ['customint1' => $cohort->id,
+            'roleid' => $studentrole->id,
+            'customint2' => $group->id]);
+        cohort_add_member($cohort->id, $user->id);
 
         /** @var core_reportbuilder_generator $generator */
         $generator = $this->getDataGenerator()->get_plugin_generator('core_reportbuilder');
