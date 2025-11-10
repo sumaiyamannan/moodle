@@ -47,6 +47,9 @@ class queue_all_assignment_due_digest_notification_tasks extends scheduled_task 
         $users = [];
         foreach ($assignments as $assignment) {
             $newusers = notification_helper::get_users_within_assignment($assignment->id, $type);
+            if (empty($newusers)) {
+                continue;
+            }
             $users = array_replace($users, $newusers);
         }
         $assignments->close();

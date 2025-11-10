@@ -135,7 +135,6 @@ class notification_helper {
             'co_ao_timenow' => $timenow,
             'modulename' => 'assign',
         ];
-
         return $DB->get_recordset_sql($sql, $params);
     }
 
@@ -220,11 +219,14 @@ class notification_helper {
      *
      * @param int $assignmentid The assignment id.
      * @param string $type The notification type.
-     * @return array The users after all filtering has been applied.
+     * @return array The users after all filtering has been applied or null if record not found.
      */
-    public static function get_users_within_assignment(int $assignmentid, string $type): array {
+    public static function get_users_within_assignment(int $assignmentid, string $type): array|null {
         // Get assignment data.
         $assignmentobj = self::get_assignment_data($assignmentid);
+        if (!$assignmentobj) {
+            return null;
+        }
 
         // Get our assignment users.
         $users = $assignmentobj->list_participants(0, true, false, true);
@@ -317,10 +319,8 @@ class notification_helper {
      * @param int $userid The user id.
      */
     public static function send_due_soon_notification_to_user(int $assignmentid, int $userid): void {
-        try {
-            // Get assignment data.
-            $assignmentobj = self::get_assignment_data($assignmentid);
-        } catch (\dml_missing_record_exception) {
+        $assignmentobj = self::get_assignment_data($assignmentid);
+        if (!$assignmentobj) {
             // The assignment has vanished, nothing to do.
             mtrace("No notification send as the assignment $assignmentid can no longer be found in the database.");
             return;
@@ -404,10 +404,8 @@ class notification_helper {
      * @param int $userid The user id.
      */
     public static function send_overdue_notification_to_user(int $assignmentid, int $userid): void {
-        try {
-            // Get assignment data.
-            $assignmentobj = self::get_assignment_data($assignmentid);
-        } catch (\dml_missing_record_exception) {
+        $assignmentobj = self::get_assignment_data($assignmentid);
+        if (!$assignmentobj) {
             // The assignment has vanished, nothing to do.
             mtrace("No notification send as the assignment $assignmentid can no longer be found in the database.");
             return;
@@ -511,6 +509,11 @@ class notification_helper {
 
         foreach ($assignments as $assignment) {
             $assignmentobj = self::get_assignment_data($assignment->id);
+            if (!$assignmentobj) {
+                // The assignment has vanished, nothing to do.
+                mtrace("No notification send as the assignment $assignment->id can no longer be found in the database.");
+                continue;
+            }
 
             // Check if the user has submitted already.
             $submission = $assignmentobj->get_user_submission($userid, false);
@@ -680,9 +683,13 @@ class notification_helper {
      * Get the assignment object, including the course and course module.
      *
      * @param int $assignmentid The assignment id.
-     * @return \assign Returns the assign object.
+     * @return \assign|null Returns the assign object or null if record not found.
      */
-    protected static function get_assignment_data(int $assignmentid): \assign {
+    protected static function get_assignment_data(int $assignmentid): \assign|null {
+        global $DB;
+        if (!$DB->record_exists('assign', ['id' => $assignmentid])) {
+            return null;
+        }
         [$course, $assigncm] = get_course_and_cm_from_instance($assignmentid, 'assign');
         $cmcontext = \context_module::instance($assigncm->id);
         return new \assign($cmcontext, $assigncm, $course);

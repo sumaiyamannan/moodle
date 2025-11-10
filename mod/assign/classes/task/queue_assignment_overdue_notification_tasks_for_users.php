@@ -35,6 +35,9 @@ class queue_assignment_overdue_notification_tasks_for_users extends adhoc_task {
         $assignmentid = $this->get_custom_data()->id;
         $type = notification_helper::TYPE_OVERDUE;
         $users = notification_helper::get_users_within_assignment($assignmentid, $type);
+        if (empty($users)) {
+            return;
+        }
         foreach ($users as $user) {
             $task = new send_assignment_overdue_notification_to_user();
             $task->set_custom_data([
