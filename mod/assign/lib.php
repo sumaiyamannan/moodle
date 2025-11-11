@@ -111,6 +111,13 @@ function assign_refresh_events($courseid = 0, $instance = null, $cm = null) {
             $instance = $DB->get_record('assign', array('id' => $instance), '*', MUST_EXIST);
         }
         if (isset($cm)) {
+            // Check if module type valid.
+            try {
+                get_course_and_cm_from_cmid($cm->id, 'assign');
+            } catch (moodle_exception $e) {
+                debugging(get_string('invalidcoursemoduleid', 'error', $e->errorcode));
+                return false;
+            }
             if (!is_object($cm)) {
                 assign_prepare_update_events($instance);
                 return true;
