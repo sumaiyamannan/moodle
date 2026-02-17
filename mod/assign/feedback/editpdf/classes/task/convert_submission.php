@@ -71,6 +71,7 @@ class convert_submission extends adhoc_task {
         }
 
         $conversionrequirespolling = false;
+        $conversionskipped = false;
         foreach ($users as $userid) {
             mtrace('Converting submission for user id ' . $userid);
 
@@ -107,6 +108,10 @@ class convert_submission extends adhoc_task {
                     // The document has not been converted yet or is somehow still ready.
                     $conversionrequirespolling = true;
                     continue 2;
+                case combined_document::STATUS_SKIPPED:
+                    // The document has skipped conversion.
+                    $conversionskipped = true;
+                    continue 2;
                 case combined_document::STATUS_FAILED:
                     // Although STATUS_FAILED indicates a "permanent error" it should be possible
                     // in some cases to fix the underlying problem, allowing the conversion to
@@ -129,6 +134,9 @@ class convert_submission extends adhoc_task {
             $task->set_custom_data($data);
             $task->set_next_run_time(time() + MINSECS);
             manager::queue_adhoc_task($task);
+        }
+        if ($conversionskipped) {
+            mtrace('Conversion skipped: submission has too many pages.');
         } else {
             mtrace('The document has been successfully converted');
         }

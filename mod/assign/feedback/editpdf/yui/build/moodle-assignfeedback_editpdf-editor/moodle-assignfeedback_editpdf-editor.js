@@ -3807,6 +3807,18 @@ EDITOR.prototype = {
                             // The combine document is ready for conversion into a single PDF.
                             poll = true;
 
+                        } else if (data.status === 4) {
+                            // The document conversion was skipped (too many pages).
+                            var progressbarlabel = this.get_dialogue_element('.progressbarlabel');
+                            if (progressbarlabel) {
+                                progressbarlabel.setHTML(M.util.get_string('skippedconvertpdf', 'assignfeedback_editpdf'));
+                            }
+                            var progressbar = this.get_dialogue_element(SELECTOR.PROGRESSBARCONTAINER);
+                            if (progressbar) {
+                                progressbar.hide();
+                            }
+                            return;
+
                         } else if (data.status === 2 || data.status === -1) {
                             // The combined PDF is ready.
                             // We now know the page count and can convert it to a set of images.

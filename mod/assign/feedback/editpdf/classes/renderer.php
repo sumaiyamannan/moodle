@@ -271,6 +271,7 @@ class assignfeedback_editpdf_renderer extends plugin_renderer_base {
             'stamp',
             'stamppicker',
             'cannotopenpdf',
+            'skippedconvertpdf',
             'pagenumber',
             'partialwarning',
             'draftchangessaved'

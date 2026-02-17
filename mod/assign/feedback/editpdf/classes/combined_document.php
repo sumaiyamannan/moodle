@@ -60,6 +60,11 @@ class combined_document {
     const STATUS_FAILED = -1;
 
     /**
+     * Status value representing a skipped conversion.
+     */
+    const STATUS_SKIPPED = 4;
+
+    /**
      * The list of files which make this document.
      */
     protected $sourcefiles = [];
@@ -68,6 +73,13 @@ class combined_document {
      * The resultant combined file.
      */
     protected $combinedfile;
+
+    /**
+     * The skipped file.
+     *
+     * @var \stored_file $skippedfile
+     */
+    protected $skippedfile;
 
     /**
      * The combination status.
@@ -91,6 +103,11 @@ class combined_document {
         if ($this->combinedfile) {
             // The combined file exists. Report success.
             return self::STATUS_COMPLETE;
+        }
+
+        if ($this->skippedfile) {
+            // The uploaded file has skipped conversion.
+            return self::STATUS_SKIPPED;
         }
 
         if (empty($this->sourcefiles)) {
@@ -144,7 +161,17 @@ class combined_document {
 
         return $this;
     }
+    /**
+     * Mark the submitted file as skipped conversion.
+     *
+     * @param   \stored_file $file The uploaded document skipped conversion due to file issue.
+     * @return  $this
+     */
+    public function set_skipped_file($file) {
+        $this->skippedfile = $file;
 
+        return $this;
+    }
     /**
      * Return true of the combined file contained only some of the submission files.
      *
@@ -227,6 +254,22 @@ class combined_document {
     }
 
     /**
+     * Get page count from PDF.
+     *
+     * @param \stored_file $file
+     * @return int|false Page count or false on failure
+     */
+    public function get_pdf_page_count($file) {
+        if (is_a($file, \stored_file::class)) {
+            $content = $file->get_content();
+            if (preg_match_all('/\/Type\s*\/Page[^s]/', $content, $matches)) {
+                return count($matches[0]);
+            }
+        }
+        return false;
+    }
+
+    /**
      * Combine all source files into a single PDF and store it in the
      * file_storage API using the supplied contextid and itemid.
      *
@@ -260,6 +303,14 @@ class combined_document {
         $compatiblepdfs = [];
 
         foreach ($files as $file) {
+            // Check if pagecount is more than 100 then exit.
+            $pagecount = $this->get_pdf_page_count($file);
+            if ($pagecount !== false && $pagecount > 100) {
+                $this->set_skipped_file($file);
+                $this->pagecount = $pagecount;
+                return $this;
+            }
+
             // Check that each file is compatible and add it to the list.
             // Note: We drop non-compatible files.
             $compatiblepdf = false;

@@ -29,6 +29,7 @@ $string['annotationcolour'] = 'Annotation colour';
 $string['black'] = 'Black';
 $string['blue'] = 'Blue';
 $string['cannotopenpdf'] = 'Cannot open the PDF. The file may be corrupt, or in an unsupported format.';
+$string['skippedconvertpdf'] = 'Cannot convert into PDF. The file exceeds the maximum page limit for conversion. Please download the file to review and grade.';
 $string['clear'] = 'Clear';
 $string['colourpicker'] = 'Colour picker';
 $string['commentcolour'] = 'Comment colour';
