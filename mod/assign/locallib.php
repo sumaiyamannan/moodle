@@ -2085,7 +2085,10 @@ class assign {
             // Add penalty indicator, icon only.
             $penaltyindicator = '';
             if ($deductedmark > 0) {
-                $gradegrade = new \grade_grade();
+                $gradegrade = new \grade_grade([
+                                    'userid' => $userid,
+                                    'itemid' => $this->get_grade_item()->get_grade($userid)->itemid,
+                                ], true);
                 $gradegrade->deductedmark = $deductedmark;
                 $gradegrade->overridden = $userid > 0 ? $this->get_grade_item()->get_grade($userid)->overridden : 0;
                 $penaltyindicator = \core_grades\penalty_manager::show_penalty_indicator($gradegrade);
@@ -5498,9 +5501,12 @@ class assign {
                         '',
                         $cangrade
                     );
+
                     // Display the penalty indicator next to the penalized grade, if applicable.
                     $penaltyindicator = \core_grades\penalty_manager::show_penalty_indicator(
                         new \grade_grade([
+                            'userid' => $user->id,
+                            'itemid' => $gradebookgrade->items[0]->id,
                             'deductedmark' => $gradebookgrade->deductedmark ?? 0,
                             'overridden' => $gradebookgrade->overridden ?? 0,
                         ], false)
@@ -5733,6 +5739,8 @@ class assign {
                 // Display the penalty indicator next to the penalized grade, if applicable.
                 $penaltyindicator = \core_grades\penalty_manager::show_penalty_indicator(
                     new \grade_grade([
+                        'itemid' => $this->get_grade_item()->id,
+                        'userid' => $grade->userid,
                         'deductedmark' => $deductedmark,
                         'overridden' => $userid > 0 ? $this->get_grade_item()->get_grade($userid)->overridden : 0,
                     ], false)
@@ -8002,7 +8010,10 @@ class assign {
         // Penalty indicator.
         $userassigngrade = $gradinginfo->items[0]->grades[$userid];
         if (isset($userassigngrade->grade)) {
-            $gradegrade = new \grade_grade();
+            $gradegrade = new \grade_grade([
+                                'userid' => $userid,
+                                'itemid' => $gradinginfo->items[0]->id,
+                            ], true);
             $gradegrade->deductedmark = $userassigngrade->deductedmark;
             $gradegrade->overridden = $userassigngrade->overridden;
             $penaltyindicator = \core_grades\penalty_manager::show_penalty_indicator($gradegrade);
