@@ -41,10 +41,19 @@ class helper {
 
         // Get the assignment instance.
         $assign = new assign($context, $cm, $cm->course);
-
-        // Check if due date is set.
-        if (!$assign->get_instance()->duedate) {
-            return false;
+        $penaltytypes = \core_grades\penalty_manager::get_enabled_penality_plugins();
+        if ($penaltytypes) {
+            if (in_array('duedate', $penaltytypes)) {
+                // Check if due date is set.
+                if (!$assign->get_instance()->duedate) {
+                    return false;
+                }
+            } else if (in_array('reattemptmaxscore', $penaltytypes)) {
+                // Check if the maxattempts is not set to 1.
+                if (!$assign->get_instance()->maxattempts > 1) {
+                    return false;
+                }
+            }
         }
 
         // Check if the grade type is set to GRADE_TYPE_VALUE (grade 1 to 100).
@@ -135,8 +144,23 @@ class helper {
             'itemnumber' => 0,
         ]);
 
+        $penaltytypes = \core_grades\penalty_manager::get_enabled_penality_plugins();
+        if (empty($penaltytypes)) {
+            debugging("Penalty plugins not found.");
+            return;
+        }
+        if (in_array('reattemptmaxscore', $penaltytypes)) {
+            $initalvalue = 1;
+            // As attemptnumber starts from 0.
+            $finalvalue = (int)$assigngrade->attemptnumber + 1;
+        } else {
+            $initalvalue = $submissiondate;
+            $finalvalue = $duedate;
+        }
+
+
         // Apply penalty.
-        $container = penalty_manager::apply_grade_penalty_to_user($userid, $gradeitem, $submissiondate, $duedate);
+        $container = penalty_manager::apply_grade_penalty_to_user($userid, $gradeitem, $initalvalue, $finalvalue);
         if ($container->get_grade_before_penalties() == 0) {
             // There is no deduction applied to grade 0.
             $deductedpercentage = 0;
