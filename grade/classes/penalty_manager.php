@@ -62,6 +62,23 @@ class penalty_manager {
     }
 
     /**
+     * Get list of enabled penalty plugins.
+     *
+     * @return array List of enabled penalty plugins.
+     */
+    public static function get_enabled_penality_plugins(): array {
+        $plugins = [];
+        // Iterate through all the penalty plugins to calculate the total penalty.
+        foreach (core_plugin_manager::instance()->get_plugins_of_type('gradepenalty') as $pluginname => $plugin) {
+            if (gradepenalty::is_plugin_enabled($pluginname)) {
+                $plugins[] = $pluginname;
+
+            }
+        }
+        return $plugins;
+    }
+
+    /**
      * Enable the grade penalty feature for a module.
      *
      * @param string $module The module name (e.g. 'assign').
@@ -251,7 +268,18 @@ class penalty_manager {
 
         // Show penalty indicator if penalty is greater than 0.
         if ($grade->is_penalty_applied_to_final_grade()) {
-            $indicator = new \core_grades\output\penalty_indicator(2, $grade);
+            foreach (core_plugin_manager::instance()->get_plugins_of_type('gradepenalty') as $pluginname => $plugin) {
+                if (\core\plugininfo\gradepenalty::is_plugin_enabled($pluginname)) {
+                    $classname = "\\gradepenalty_{$pluginname}\\output\\penalty_indicator";
+                    if (class_exists($classname)) {
+                        $indicator = new $classname(2, $grade);
+                        break;
+                    }
+                }
+            }
+            if (!isset($indicator)) {
+                $indicator = new \core_grades\output\penalty_indicator(2, $grade);
+            }
             $renderer = $PAGE->get_renderer('core_grades');
             return $renderer->render_penalty_indicator($indicator);
         }
