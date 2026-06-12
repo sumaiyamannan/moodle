@@ -1523,8 +1523,9 @@ class assign {
                 calendar_event::create($event, false);
             }
         } else {
+            // Delete base event records only.
             $DB->delete_records('event', array('modulename' => 'assign', 'instance' => $instance->id,
-                'eventtype' => $eventtype));
+                'eventtype' => $eventtype, 'groupid' => 0, 'userid' => 0));
         }
 
         $eventtype = ASSIGN_EVENT_TYPE_GRADINGDUE;
@@ -1544,8 +1545,9 @@ class assign {
                 calendar_event::create($event, false);
             }
         } else {
+            // Delete base event records only.
             $DB->delete_records('event', array('modulename' => 'assign', 'instance' => $instance->id,
-                'eventtype' => $eventtype));
+                'eventtype' => $eventtype, 'groupid' => 0, 'userid' => 0));
         }
 
         return true;
