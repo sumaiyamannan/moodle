@@ -278,10 +278,16 @@ abstract class activityoverviewbase {
                 continue;
             }
 
+            $content = grade_format_gradevalue($gradegrade->finalgrade, $item);
+            $penaltyindicator = \core_grades\penalty_manager::show_penalty_indicator($gradegrade);
+            if ($penaltyindicator !== '') {
+                $content .= $penaltyindicator;
+            }
+
             $result[] = new overviewitem(
                 name: $itemnames[$item->id],
                 value: $gradegrade->finalgrade,
-                content: grade_format_gradevalue($gradegrade->finalgrade, $item),
+                content: $content,
                 textalign: text_align::END,
             );
         }
