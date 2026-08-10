@@ -62,6 +62,22 @@ class penalty_manager {
     }
 
     /**
+     * Get list of enabled penalty plugins.
+     *
+     * @return array List of enabled penalty plugins.
+     */
+    public static function get_enabled_penality_plugins(): array {
+        $plugins = [];
+        // Iterate through all the penalty plugins to calculate the total penalty.
+        foreach (core_plugin_manager::instance()->get_plugins_of_type('gradepenalty') as $pluginname => $plugin) {
+            if (gradepenalty::is_plugin_enabled($pluginname)) {
+                $plugins[] = $pluginname;
+            }
+        }
+        return $plugins;
+    }
+
+    /**
      * Enable the grade penalty feature for a module.
      *
      * @param string $module The module name (e.g. 'assign').
