@@ -147,6 +147,7 @@ class mod_assign_mod_form extends moodleform_mod {
         $options += array_combine(range(1, 30), range(1, 30));
         $mform->addElement('select', 'maxattempts', get_string('maxattempts', 'mod_assign'), $options);
         $mform->addHelpButton('maxattempts', 'maxattempts', 'assign');
+        $mform->disabledIf('maxattempts', 'recalculatepenalty', 'eq', '');
 
         $choice = new core\output\choicelist();
 
@@ -336,6 +337,17 @@ class mod_assign_mod_form extends moodleform_mod {
             $mform->addElement('selectyesno', 'gradepenalty', get_string('gradepenalty', 'mod_assign'));
             $mform->addHelpButton('gradepenalty', 'gradepenalty', 'mod_assign');
             $mform->setDefault('gradepenalty', 0);
+
+            $penaltytypes = \core_grades\penalty_manager::get_enabled_penality_plugins();
+            if ($penaltytypes) {
+                if (in_array('duedate', $penaltytypes)) {
+                    // Hide if the due date is not enabled.
+                    $mform->hideIf('gradepenalty', 'duedate[enabled]');
+                } else if (in_array('reattemptmaxscore', $penaltytypes)) {
+                    // Hide if the maxattempts is not set to 1.
+                    $mform->hideIf('gradepenalty', 'maxattempts', 'eq', 1);
+                }
+            }
 
             // Hide if the due date is not enabled.
             $mform->hideIf('gradepenalty', 'duedate[enabled]');
